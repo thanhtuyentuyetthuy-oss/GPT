@@ -42,8 +42,9 @@ function Show-SportMenu {
     Write-Host '[9] Run V0.2.4 Resolver integration test'
     Write-Host '[10] Run V0.2.4 Stream cache test'
     Write-Host '[11] Run V0.3.1 Live contract test'
-    Write-Host '[12] Show latest log'
-    Write-Host '[13] Publish log to GitHub'
+    Write-Host '[12] Run V0.3.2 Local time state test'
+    Write-Host '[13] Show latest log'
+    Write-Host '[14] Publish log to GitHub'
     Write-Host '[0] Exit'
     Write-Host ''
 }
@@ -222,6 +223,29 @@ function Invoke-V031LiveContract {
     $result.Checks | Format-List
 }
 
+function Invoke-V032LocalTimeState {
+    $module = Join-Path $ModulesRoot 'V03.LocalTimeState/V03.LocalTimeState.psm1'
+    if (-not (Import-SportModule -Path $module)) {
+        Write-Host 'V0.3.2 Local Time State module is not installed yet.' -ForegroundColor Yellow
+        return
+    }
+
+    $result = Test-V032LocalTimeState
+    Write-Host "Version       : $($result.Version)"
+    Write-Host "Status        : $($result.Status)"
+    Write-Host "Source        : $($result.Source)"
+    Write-Host "API Requests  : $($result.ApiRequests)"
+    Write-Host "Cache Read    : $($result.CacheRead)"
+    Write-Host "Total         : $($result.Total)"
+    Write-Host "Live Candidate: $($result.LiveCandidate)"
+    Write-Host "Upcoming      : $($result.Upcoming)"
+    Write-Host "Unknown       : $($result.Unknown)"
+    Write-Host "TimeZone      : $($result.TimeZone)"
+    if ($result.Error) {
+        Write-Host "Error         : $($result.Error)" -ForegroundColor Red
+    }
+}
+
 function Show-Status {
     $candidates = Get-ChildItem -Path $ModulesRoot -Directory -ErrorAction SilentlyContinue
     if (-not $candidates) {
@@ -242,72 +266,21 @@ while ($true) {
     Show-SportMenu
     $choice = Read-Host 'Select'
     switch ($choice) {
-        '1' {
-            Write-Host "Project: $ProjectRoot"
-            Write-Host "Modules: $ModulesRoot"
-            Write-Host "Shared : $SharedRoot"
-            Read-Host 'Press Enter'
-        }
-        '2' {
-            Show-Status
-            Read-Host 'Press Enter'
-        }
-        '3' {
-            Invoke-V01
-            Read-Host 'Press Enter'
-        }
-        '4' {
-            Invoke-V02Contract
-            Read-Host 'Press Enter'
-        }
-        '5' {
-            Invoke-V02Integration
-            Read-Host 'Press Enter'
-        }
-        '6' {
-            Invoke-V022LeaguePriority
-            Read-Host 'Press Enter'
-        }
-        '7' {
-            Invoke-V023Meta
-            Read-Host 'Press Enter'
-        }
-        '8' {
-            Invoke-V024StreamContract
-            Read-Host 'Press Enter'
-        }
-        '9' {
-            Invoke-V024Resolver
-            Read-Host 'Press Enter'
-        }
-        '10' {
-            Invoke-V024StreamCache
-            Read-Host 'Press Enter'
-        }
-        '11' {
-            Invoke-V031LiveContract
-            Read-Host 'Press Enter'
-        }
-        '12' {
-            $latest = Join-Path $ProjectRoot 'Logs/log.txt'
-            if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }
-            Read-Host 'Press Enter'
-        }
-        '13' {
-            if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) {
-                Publish-SportLog -RepoRoot $ProjectRoot
-            } else {
-                Write-Host 'GitHub module not installed yet.' -ForegroundColor Yellow
-            }
-            Read-Host 'Press Enter'
-        }
-        '0' {
-            Write-Host 'Exiting Vietnam Sports Hub...'
-            return
-        }
-        default {
-            Write-Host 'Invalid selection.' -ForegroundColor Yellow
-            Start-Sleep -Milliseconds 700
-        }
+        '1' { Write-Host "Project: $ProjectRoot"; Write-Host "Modules: $ModulesRoot"; Write-Host "Shared : $SharedRoot"; Read-Host 'Press Enter' }
+        '2' { Show-Status; Read-Host 'Press Enter' }
+        '3' { Invoke-V01; Read-Host 'Press Enter' }
+        '4' { Invoke-V02Contract; Read-Host 'Press Enter' }
+        '5' { Invoke-V02Integration; Read-Host 'Press Enter' }
+        '6' { Invoke-V022LeaguePriority; Read-Host 'Press Enter' }
+        '7' { Invoke-V023Meta; Read-Host 'Press Enter' }
+        '8' { Invoke-V024StreamContract; Read-Host 'Press Enter' }
+        '9' { Invoke-V024Resolver; Read-Host 'Press Enter' }
+        '10' { Invoke-V024StreamCache; Read-Host 'Press Enter' }
+        '11' { Invoke-V031LiveContract; Read-Host 'Press Enter' }
+        '12' { Invoke-V032LocalTimeState; Read-Host 'Press Enter' }
+        '13' { $latest = Join-Path $ProjectRoot 'Logs/log.txt'; if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
+        '14' { if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) { Publish-SportLog -RepoRoot $ProjectRoot } else { Write-Host 'GitHub module not installed yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
+        '0' { Write-Host 'Exiting Vietnam Sports Hub...'; return }
+        default { Write-Host 'Invalid selection.' -ForegroundColor Yellow; Start-Sleep -Milliseconds 700 }
     }
 }
