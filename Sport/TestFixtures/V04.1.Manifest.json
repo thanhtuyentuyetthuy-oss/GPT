@@ -1,0 +1,25 @@
+{
+  "id": "org.vietnam.sports.hub",
+  "version": "0.4.1",
+  "name": "Vietnam Sports Hub",
+  "description": "Vietnam sports addon using cache-first catalog, on-demand meta, authorized streams and active-session live state.",
+  "resources": ["catalog", "meta", "stream"],
+  "types": ["tv"],
+  "idPrefixes": ["sports:event:"],
+  "catalogs": [
+    {
+      "type": "tv",
+      "id": "vietnam-sports",
+      "name": "Vietnam Sports",
+      "extra": [
+        {
+          "name": "search",
+          "isRequired": false
+        }
+      ]
+    }
+  ],
+  "behaviorHints": {
+    "configurable": false
+  }
+}
