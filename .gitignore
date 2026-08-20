@@ -1,0 +1,6 @@
+# Runtime-generated sports cache
+Sport/Data/
+
+# Local PowerShell/editor artifacts
+*.tmp
+*.log
