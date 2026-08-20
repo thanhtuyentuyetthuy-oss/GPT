@@ -5,9 +5,10 @@ const path = require('path');
 const HOST = process.env.ADDON_HOST || '0.0.0.0';
 const PORT = Number(process.env.ADDON_PORT || 7000);
 const ROOT = path.resolve(__dirname, '..');
+const PROJECT_DATA_ROOT = path.resolve(__dirname, '..', '..', 'Data');
 const MANIFEST_PATH = path.join(ROOT, 'TestFixtures', 'V04.1.Manifest.json');
 const SOURCE_FIXTURE_PATH = path.join(ROOT, 'TestFixtures', 'V04.0.PublicSourceFixtures.json');
-const CACHE_ROOT = path.join(ROOT, 'Data', 'Cache', 'V02.Catalog');
+const CACHE_ROOT = path.join(PROJECT_DATA_ROOT, 'Cache', 'V02.Catalog');
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -165,7 +166,8 @@ const server = http.createServer((req, res) => {
         version: '0.4.3',
         status: 'OK',
         manifest: '/manifest.json',
-        catalogSource: 'V0.2.1 DAILY CACHE'
+        catalogSource: 'V0.2.1 DAILY CACHE',
+        cacheRoot: CACHE_ROOT
       });
       return;
     }
