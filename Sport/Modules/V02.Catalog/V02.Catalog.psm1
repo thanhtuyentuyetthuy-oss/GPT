@@ -5,6 +5,7 @@ Set-StrictMode -Version Latest
 $script:ModuleVersion = '0.2.1'
 $script:ModuleName = 'V02.Catalog'
 $script:TimeZoneId = 'Asia/Ho_Chi_Minh'
+$script:WindowsTimeZoneId = 'SE Asia Standard Time'
 $script:ApiBase = 'https://www.thesportsdb.com/api/v1/json/123'
 $script:CacheRoot = Join-Path $PSScriptRoot '..\..\..\Data\Cache\V02.Catalog'
 
@@ -14,8 +15,22 @@ function Ensure-V02CacheDirectory {
     }
 }
 
+function Get-V02TimeZone {
+    [CmdletBinding()]
+    param()
+
+    # Windows PowerShell on Windows uses Windows time-zone IDs; .NET 6+ on
+    # some platforms can use IANA IDs. Prefer the requested IANA ID when it
+    # exists, then fall back to the Windows equivalent for compatibility.
+    try {
+        return [TimeZoneInfo]::FindSystemTimeZoneById($script:TimeZoneId)
+    } catch {
+        return [TimeZoneInfo]::FindSystemTimeZoneById($script:WindowsTimeZoneId)
+    }
+}
+
 function Get-V02VietnamNow {
-    $tz = [TimeZoneInfo]::FindSystemTimeZoneById($script:TimeZoneId)
+    $tz = Get-V02TimeZone
     [TimeZoneInfo]::ConvertTimeFromUtc([datetime]::UtcNow, $tz)
 }
 
