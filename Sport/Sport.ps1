@@ -38,8 +38,9 @@ function Show-SportMenu {
     Write-Host '[5] Run V0.2.1 API/Cache integration test'
     Write-Host '[6] Run V0.2.2 League priority test'
     Write-Host '[7] Run V0.2.3 Select/Meta on-demand test'
-    Write-Host '[8] Show latest log'
-    Write-Host '[9] Publish log to GitHub'
+    Write-Host '[8] Run V0.2.4 Stream contract test'
+    Write-Host '[9] Show latest log'
+    Write-Host '[10] Publish log to GitHub'
     Write-Host '[0] Exit'
     Write-Host ''
 }
@@ -133,6 +134,20 @@ function Invoke-V023Meta {
     }
 }
 
+function Invoke-V024StreamContract {
+    $module = Join-Path $ModulesRoot 'V02.Stream/V02.Stream.psm1'
+    if (-not (Import-SportModule -Path $module)) {
+        Write-Host 'V0.2.4 Stream module is not installed yet.' -ForegroundColor Yellow
+        return
+    }
+
+    $result = Test-V024StreamContract
+    Write-Host "Version              : $($result.Version)"
+    Write-Host "Status               : $($result.Status)"
+    Write-Host $result.Message
+    $result.Checks | Format-List
+}
+
 function Show-Status {
     $candidates = Get-ChildItem -Path $ModulesRoot -Directory -ErrorAction SilentlyContinue
     if (-not $candidates) {
@@ -184,11 +199,15 @@ while ($true) {
             Read-Host 'Press Enter'
         }
         '8' {
+            Invoke-V024StreamContract
+            Read-Host 'Press Enter'
+        }
+        '9' {
             $latest = Join-Path $ProjectRoot 'Logs/log.txt'
             if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }
             Read-Host 'Press Enter'
         }
-        '9' {
+        '10' {
             if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) {
                 Publish-SportLog -RepoRoot $ProjectRoot
             } else {
