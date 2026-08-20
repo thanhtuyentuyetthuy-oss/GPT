@@ -3,7 +3,8 @@ $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $addonRoot = Join-Path $projectRoot 'V04.AddonServer'
 $addonScript = Join-Path $addonRoot 'addon.js'
-$cacheRoot = Join-Path $projectRoot 'Data\Cache\V02.Catalog'
+# V0.2.1 stores Data beside Sport at the repository root: D:\GPT\GPT-Git\Data\Cache\...
+$cacheRoot = Join-Path (Split-Path -Parent $projectRoot) 'Data\Cache\V02.Catalog'
 $port = 7000
 $base = "http://127.0.0.1:$port"
 $process = $null
@@ -24,7 +25,7 @@ try {
     $node = Get-Command node -ErrorAction SilentlyContinue
     if (-not $node) { throw 'Node.js is not installed or not available on PATH.' }
     if (-not (Test-Path $addonScript)) { throw "Addon server not found: $addonScript" }
-    if (-not (Test-Path $cacheRoot)) { throw 'V0.2.1 catalog cache directory not found. Run the V0.2.1 Catalog/API test first.' }
+    if (-not (Test-Path $cacheRoot)) { throw "V0.2.1 catalog cache directory not found: $cacheRoot" }
 
     $cacheFiles = @(Get-ChildItem -Path $cacheRoot -Filter 'catalog-*.json' -File | Sort-Object Name -Descending)
     if ($cacheFiles.Count -eq 0) { throw 'No V0.2.1 catalog cache file found.' }
