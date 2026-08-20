@@ -1,0 +1,25 @@
+{
+  "version": "0.4.0",
+  "sourcePolicy": "PUBLIC-PLAYLIST-REFERENCE",
+  "notes": "Test fixtures sourced from the public iptv-org project. These URLs are playlist references for adapter/resolver testing; availability of individual channels may change and should be revalidated before playback.",
+  "sources": [
+    {
+      "name": "IPTV-org Sports Category",
+      "type": "public-m3u-playlist",
+      "url": "https://iptv-org.github.io/iptv/categories/sports.m3u",
+      "scope": "sports"
+    },
+    {
+      "name": "IPTV-org Vietnam Country Playlist",
+      "type": "public-m3u-playlist",
+      "url": "https://iptv-org.github.io/iptv/countries/vn.m3u",
+      "scope": "vietnam"
+    },
+    {
+      "name": "IPTV-org General Playlist",
+      "type": "public-m3u-playlist",
+      "url": "https://iptv-org.github.io/iptv/index.m3u",
+      "scope": "general"
+    }
+  ]
+}
