@@ -27,7 +27,8 @@ function Get-V034LiveVerificationConfig {
 function Get-V034EventFromMetaCache {
     param([Parameter(Mandatory)][string]$EventId)
 
-    $metaPath = Join-Path $PSScriptRoot '..\..\..\Data\Cache\V02.Meta\event-{0}.json' -f $EventId
+    $metaTemplate = Join-Path $PSScriptRoot '..\..\..\Data\Cache\V02.Meta\event-{0}.json'
+    $metaPath = $metaTemplate -f $EventId
     if (-not (Test-Path $metaPath)) {
         return $null
     }
