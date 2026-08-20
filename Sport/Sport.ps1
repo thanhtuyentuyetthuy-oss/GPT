@@ -40,8 +40,9 @@ function Show-SportMenu {
     Write-Host '[7] Run V0.2.3 Select/Meta on-demand test'
     Write-Host '[8] Run V0.2.4 Stream contract test'
     Write-Host '[9] Run V0.2.4 Resolver integration test'
-    Write-Host '[10] Show latest log'
-    Write-Host '[11] Publish log to GitHub'
+    Write-Host '[10] Run V0.2.4 Stream cache test'
+    Write-Host '[11] Show latest log'
+    Write-Host '[12] Publish log to GitHub'
     Write-Host '[0] Exit'
     Write-Host ''
 }
@@ -149,7 +150,7 @@ function Invoke-V024StreamContract {
     $result.Checks | Format-List
 }
 
-function Invoke-V024ResolverIntegration {
+function Invoke-V024Resolver {
     $module = Join-Path $ModulesRoot 'V02.Stream/V02.Stream.psm1'
     if (-not (Import-SportModule -Path $module)) {
         Write-Host 'V0.2.4 Stream module is not installed yet.' -ForegroundColor Yellow
@@ -168,6 +169,39 @@ function Invoke-V024ResolverIntegration {
     Write-Host "URL Valid              : $($result.UrlValid)"
     Write-Host "Resolver Requests      : $($result.ResolverRequest)"
     Write-Host "Resolved               : $($result.Resolved)"
+    if ($result.Error) {
+        Write-Host "Error                  : $($result.Error)" -ForegroundColor Red
+    }
+}
+
+function Invoke-V024StreamCache {
+    $module = Join-Path $ModulesRoot 'V02.Stream/V02.Stream.psm1'
+    if (-not (Import-SportModule -Path $module)) {
+        Write-Host 'V0.2.4 Stream module is not installed yet.' -ForegroundColor Yellow
+        return
+    }
+
+    $eventId = Read-Host 'Selected Event ID'
+    $sourceUrl = Read-Host 'Authorized public/official source URL'
+    $ttlText = Read-Host 'TTL seconds (Enter = default 120)'
+    $ttlSeconds = 120
+    if (-not [string]::IsNullOrWhiteSpace($ttlText)) {
+        [int]$ttlSeconds = $ttlText
+    }
+
+    $result = Test-V024StreamCache -EventId $eventId -SourceUrl $sourceUrl -TtlSeconds $ttlSeconds
+    Write-Host "Version                : $($result.Version)"
+    Write-Host "Status                 : $($result.Status)"
+    Write-Host "Event ID               : $($result.EventId)"
+    Write-Host "Source Policy          : $($result.SourcePolicy)"
+    Write-Host "Play Requested         : $($result.PlayRequested)"
+    Write-Host "First Cache Hit        : $($result.FirstCacheHit)"
+    Write-Host "First Cache Write      : $($result.FirstCacheWrite)"
+    Write-Host "Second Cache Hit       : $($result.SecondCacheHit)"
+    Write-Host "Resolver Requests #1   : $($result.ResolverRequestsFirst)"
+    Write-Host "Resolver Requests #2   : $($result.ResolverRequestsSecond)"
+    Write-Host "TTL Seconds            : $($result.TtlSeconds)"
+    Write-Host "Cache Path             : $($result.CachePath)"
     if ($result.Error) {
         Write-Host "Error                  : $($result.Error)" -ForegroundColor Red
     }
@@ -228,15 +262,19 @@ while ($true) {
             Read-Host 'Press Enter'
         }
         '9' {
-            Invoke-V024ResolverIntegration
+            Invoke-V024Resolver
             Read-Host 'Press Enter'
         }
         '10' {
+            Invoke-V024StreamCache
+            Read-Host 'Press Enter'
+        }
+        '11' {
             $latest = Join-Path $ProjectRoot 'Logs/log.txt'
             if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }
             Read-Host 'Press Enter'
         }
-        '11' {
+        '12' {
             if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) {
                 Publish-SportLog -RepoRoot $ProjectRoot
             } else {
