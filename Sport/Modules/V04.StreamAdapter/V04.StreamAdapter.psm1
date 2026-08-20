@@ -44,13 +44,13 @@ function Test-V045StreamAdapter {
             Status = if ($valid) { 'PASS' } else { 'FAIL' }
             Source = 'V0.2.4 STREAM CACHE ONLY'
             EventId = $EventId
-            Stream Cache Read = $true
-            Resolver Requests = 0
-            Stream Loaded = $valid
-            Authorized Source Only = ($payload.sourcePolicy -eq 'AUTHORIZED-ONLY')
-            Stremio Stream Valid = $valid
-            Stream Cache Path = $cache
-            Stremio Streams = $result
+            'Stream Cache Read' = $true
+            'Resolver Requests' = 0
+            'Stream Loaded' = $valid
+            'Authorized Source Only' = ($payload.sourcePolicy -eq 'AUTHORIZED-ONLY')
+            'Stremio Stream Valid' = $valid
+            'Stream Cache Path' = $cache
+            'Stremio Streams' = $result
             Error = $null
         }
     }
@@ -60,13 +60,13 @@ function Test-V045StreamAdapter {
             Status = 'FAIL'
             Source = 'V0.2.4 STREAM CACHE ONLY'
             EventId = $EventId
-            Stream Cache Read = $false
-            Resolver Requests = 0
-            Stream Loaded = $false
-            Authorized Source Only = $false
-            Stremio Stream Valid = $false
-            Stream Cache Path = $null
-            Stremio Streams = $null
+            'Stream Cache Read' = $false
+            'Resolver Requests' = 0
+            'Stream Loaded' = $false
+            'Authorized Source Only' = $false
+            'Stremio Stream Valid' = $false
+            'Stream Cache Path' = $null
+            'Stremio Streams' = $null
             Error = $_.Exception.Message
         }
     }
