@@ -20,7 +20,6 @@ $sharedModules = @(
     (Join-Path $SharedRoot 'Config.psm1'),
     (Join-Path $SharedRoot 'Cache.psm1')
 )
-
 foreach ($module in $sharedModules) {
     if (Test-Path $module) { Import-SportModule -Path $module | Out-Null }
 }
@@ -46,8 +45,9 @@ function Show-SportMenu {
     Write-Host '[13] Run V0.3.3 Active-match Live session contract test'
     Write-Host '[14] Run V0.3.4 Live verification test'
     Write-Host '[15] Run V0.3.5 Active-session polling test'
-    Write-Host '[16] Show latest log'
-    Write-Host '[17] Publish log to GitHub'
+    Write-Host '[16] Run V0.3.6 Exit/Stop test'
+    Write-Host '[17] Show latest log'
+    Write-Host '[18] Publish log to GitHub'
     Write-Host '[0] Exit'
     Write-Host ''
 }
@@ -248,6 +248,30 @@ function Invoke-V035ActivePolling {
     }
 }
 
+function Invoke-V036ExitStop {
+    $module = Join-Path $ModulesRoot 'V03.ExitStop/V03.ExitStop.psm1'
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.3.6 Exit/Stop module is not installed yet.' -ForegroundColor Yellow; return }
+    $pollText = Read-Host 'Poll requests before exit (Enter = 1)'
+    $pollRequests = 1
+    if (-not [string]::IsNullOrWhiteSpace($pollText)) { [int]$pollRequests = $pollText }
+    try {
+        $result = Test-V036ExitStop -PollRequestsBeforeExit $pollRequests
+        Write-Host "Version                    : $($result.Version)"
+        Write-Host "Status                     : $($result.Status)"
+        Write-Host "Session Active Before Exit: $($result.SessionActiveBeforeExit)"
+        Write-Host "Exit Requested             : $($result.ExitRequested)"
+        Write-Host "Poll Requests Before Exit : $($result.PollRequestsBeforeExit)"
+        Write-Host "Polling Stopped            : $($result.PollingStopped)"
+        Write-Host "Post-Exit Poll Requests   : $($result.PostExitPollRequests)"
+        Write-Host "Post-Exit Requests        : $($result.PostExitRequests)"
+        Write-Host "Warm Cache Kept            : $($result.WarmCacheKept)"
+        Write-Host "Stop Reason                : $($result.StopReason)"
+        if ($result.Error) { Write-Host "Error                      : $($result.Error)" -ForegroundColor Red }
+    } catch {
+        Write-Host "Error                      : $($_.Exception.Message)" -ForegroundColor Red
+    }
+}
+
 function Show-Status {
     $candidates = Get-ChildItem -Path $ModulesRoot -Directory -ErrorAction SilentlyContinue
     if (-not $candidates) { Write-Host 'No version modules have been added yet.' -ForegroundColor Yellow; return }
@@ -277,8 +301,9 @@ while ($true) {
         '13' { Invoke-V033LiveSessionContract; Read-Host 'Press Enter' }
         '14' { Invoke-V034LiveVerification; Read-Host 'Press Enter' }
         '15' { Invoke-V035ActivePolling; Read-Host 'Press Enter' }
-        '16' { $latest = Join-Path $ProjectRoot 'Logs/log.txt'; if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
-        '17' { if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) { Publish-SportLog -RepoRoot $ProjectRoot } else { Write-Host 'GitHub module not installed yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
+        '16' { Invoke-V036ExitStop; Read-Host 'Press Enter' }
+        '17' { $latest = Join-Path $ProjectRoot 'Logs/log.txt'; if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
+        '18' { if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) { Publish-SportLog -RepoRoot $ProjectRoot } else { Write-Host 'GitHub module not installed yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
         '0' { Write-Host 'Exiting Vietnam Sports Hub...'; return }
         default { Write-Host 'Invalid selection.' -ForegroundColor Yellow; Start-Sleep -Milliseconds 700 }
     }
