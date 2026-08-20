@@ -59,7 +59,6 @@ function Get-V022PriorityCatalog {
 
     $rows = @(
         foreach ($item in $items) {
-            # StrictMode-safe reading: older cache files may not contain every optional property.
             $eventData = $null
             $descriptionValue = $null
 
@@ -90,14 +89,19 @@ function Get-V022PriorityCatalog {
     )
 
     $priority = @($rows | Where-Object { $_.priority } | Sort-Object rank, @{Expression = {
-        if ($_.event -and $_.event.PSObject.Properties['name']) { [string]$_.event.name } else { '' }
+        if ($_.PSObject.Properties['event'] -and $_.event -and $_.event.PSObject.Properties['name']) { [string]$_.event.name } else { '' }
     }})
 
     $other = @($rows | Where-Object { -not $_.priority } | Sort-Object @{Expression = {
-        if ($_.event -and $_.event.PSObject.Properties['releaseInfo']) { [string]$_.event.releaseInfo } else { '' }
+        if ($_.PSObject.Properties['event'] -and $_.event -and $_.event.PSObject.Properties['releaseInfo']) { [string]$_.event.releaseInfo } else { '' }
     }}, @{Expression = {
-        if ($_.event -and $_.event.PSObject.Properties['name']) { [string]$_.event.name } else { '' }
+        if ($_.PSObject.Properties['event'] -and $_.event -and $_.event.PSObject.Properties['name']) { [string]$_.event.name } else { '' }
     }})
+
+    # Do not use $priority.event / $other.event because PowerShell 5.1
+    # under StrictMode can throw when either collection is empty.
+    $priorityEvents = @($priority | ForEach-Object { $_.event })
+    $otherEvents = @($other | ForEach-Object { $_.event })
 
     [PSCustomObject]@{
         version = $script:ModuleVersion
@@ -107,8 +111,8 @@ function Get-V022PriorityCatalog {
         total = $rows.Count
         priorityCount = $priority.Count
         otherCount = $other.Count
-        priority = @($priority.event)
-        other = @($other.event)
+        priority = $priorityEvents
+        other = $otherEvents
     }
 }
 
