@@ -89,11 +89,14 @@ function buildStreams(id) {
   };
 }
 
+function normalizeResourceId(value) {
+  return value.endsWith('.json') ? value.slice(0, -5) : value;
+}
+
 const server = http.createServer((req, res) => {
   try {
     const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-    // Normalize percent-encoded event IDs before route matching so both
-    // sports%3Aevent%3A2397275 and sports:event:2397275 work identically.
+    // Normalize percent-encoded paths before route matching.
     const pathname = decodeURIComponent(requestUrl.pathname).replace(/\/$/, '') || '/';
 
     if (req.method !== 'GET') {
@@ -111,15 +114,15 @@ const server = http.createServer((req, res) => {
       return;
     }
 
-    const metaMatch = pathname.match(/^\/meta\/tv\/([^/]+)(?:\.json)?$/);
+    const metaMatch = pathname.match(/^\/meta\/tv\/([^/]+)$/);
     if (metaMatch) {
-      sendJson(res, 200, buildMeta(metaMatch[1]));
+      sendJson(res, 200, buildMeta(normalizeResourceId(metaMatch[1])));
       return;
     }
 
-    const streamMatch = pathname.match(/^\/stream\/tv\/([^/]+)(?:\.json)?$/);
+    const streamMatch = pathname.match(/^\/stream\/tv\/([^/]+)$/);
     if (streamMatch) {
-      sendJson(res, 200, buildStreams(streamMatch[1]));
+      sendJson(res, 200, buildStreams(normalizeResourceId(streamMatch[1])));
       return;
     }
 
