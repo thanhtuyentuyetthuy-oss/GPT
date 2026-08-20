@@ -1,0 +1,8 @@
+{
+  "version": "0.2.4",
+  "eventId": "2397275",
+  "sourceUrl": "https://raw.githubusercontent.com/vietng228/m3u/refs/heads/main/new.m3u",
+  "sourceType": "user-provided-public-test-fixture",
+  "sourcePolicy": "AUTHORIZED-ONLY",
+  "notes": "Stored only as a resolver/cache test fixture. The project does not extract hidden endpoints, bypass access controls, or resolve protected streams. Verify that the source is authorized for intended use before production playback."
+}
