@@ -27,7 +27,7 @@ function Get-V034LiveVerificationConfig {
 function Get-V034EventFromMetaCache {
     param([Parameter(Mandatory)][string]$EventId)
 
-    $metaPath = Join-Path $PSScriptRoot '..\..\..\Data\Cache\V02.Meta\event-$EventId.json'
+    $metaPath = Join-Path $PSScriptRoot '..\..\..\Data\Cache\V02.Meta\event-{0}.json' -f $EventId
     if (-not (Test-Path $metaPath)) {
         return $null
     }
@@ -99,15 +99,19 @@ function Test-V034LiveVerification {
     }
 
     try {
-        $catalogPath = Join-Path $PSScriptRoot '..\..\..\Data\Cache\V02.Catalog\catalog-' + ((Get-Date).ToUniversalTime().ToString('yyyy-MM-dd')) + '.json'
-        if (-not (Test-Path $catalogPath)) {
-            # Prefer today's Vietnam cache path through the existing known filename convention.
-            $catalogFiles = Get-ChildItem -Path (Join-Path $PSScriptRoot '..\..\..\Data\Cache\V02.Catalog') -Filter 'catalog-*.json' -File -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending
-            if (-not $catalogFiles) {
-                throw 'V0.2.1 catalog cache was not found.'
-            }
-            $catalogPath = $catalogFiles[0].FullName
+        $cacheRoot = Join-Path $PSScriptRoot '..\..\..\Data\Cache\V02.Catalog'
+        if (-not (Test-Path $cacheRoot)) {
+            throw 'V0.2.1 catalog cache directory was not found.'
         }
+
+        # Prefer the newest cached Catalog. This avoids assuming the UTC date
+        # matches the Vietnam local date used by V0.2.1.
+        $catalogFiles = Get-ChildItem -Path $cacheRoot -Filter 'catalog-*.json' -File -ErrorAction SilentlyContinue |
+            Sort-Object LastWriteTime -Descending
+        if (-not $catalogFiles) {
+            throw 'V0.2.1 catalog cache was not found.'
+        }
+        $catalogPath = $catalogFiles[0].FullName
 
         $catalog = Get-Content -Path $catalogPath -Raw -Encoding UTF8 | ConvertFrom-Json
         $items = @($catalog.metas)
