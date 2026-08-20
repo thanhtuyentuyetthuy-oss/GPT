@@ -44,8 +44,9 @@ function Show-SportMenu {
     Write-Host '[11] Run V0.3.1 Live contract test'
     Write-Host '[12] Run V0.3.2 Local time state test'
     Write-Host '[13] Run V0.3.3 Active-match Live session contract test'
-    Write-Host '[14] Show latest log'
-    Write-Host '[15] Publish log to GitHub'
+    Write-Host '[14] Run V0.3.4 Live verification test'
+    Write-Host '[15] Show latest log'
+    Write-Host '[16] Publish log to GitHub'
     Write-Host '[0] Exit'
     Write-Host ''
 }
@@ -199,6 +200,28 @@ function Invoke-V033LiveSessionContract {
     $result.Checks | Format-List
 }
 
+function Invoke-V034LiveVerification {
+    $module = Join-Path $ModulesRoot 'V03.LiveVerification/V03.LiveVerification.psm1'
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.3.4 Live Verification module is not installed yet.' -ForegroundColor Yellow; return }
+    $eventId = Read-Host 'Selected Event ID (Enter = 2397275)'
+    if ([string]::IsNullOrWhiteSpace($eventId)) { $eventId = '2397275' }
+    $result = Test-V034LiveVerification -EventId $eventId
+    Write-Host "Version       : $($result.Version)"
+    Write-Host "Status        : $($result.Status)"
+    Write-Host "Source        : $($result.Source)"
+    Write-Host "Event ID      : $($result.EventId)"
+    Write-Host "Catalog Read  : $($result.CatalogRead)"
+    Write-Host "Meta Cache Read: $($result.MetaCacheRead)"
+    Write-Host "Selected      : $($result.Selected)"
+    Write-Host "Play Requested: $($result.PlayRequested)"
+    Write-Host "API Requests  : $($result.ApiRequests)"
+    Write-Host "Verified      : $($result.Verified)"
+    Write-Host "Is Live       : $($result.IsLive)"
+    Write-Host "Live State    : $($result.LiveState)"
+    Write-Host "Source Status : $($result.SourceStatus)"
+    if ($result.Error) { Write-Host "Error         : $($result.Error)" -ForegroundColor Red }
+}
+
 function Show-Status {
     $candidates = Get-ChildItem -Path $ModulesRoot -Directory -ErrorAction SilentlyContinue
     if (-not $candidates) { Write-Host 'No version modules have been added yet.' -ForegroundColor Yellow; return }
@@ -226,8 +249,9 @@ while ($true) {
         '11' { Invoke-V031LiveContract; Read-Host 'Press Enter' }
         '12' { Invoke-V032LocalTimeState; Read-Host 'Press Enter' }
         '13' { Invoke-V033LiveSessionContract; Read-Host 'Press Enter' }
-        '14' { $latest = Join-Path $ProjectRoot 'Logs/log.txt'; if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
-        '15' { if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) { Publish-SportLog -RepoRoot $ProjectRoot } else { Write-Host 'GitHub module not installed yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
+        '14' { Invoke-V034LiveVerification; Read-Host 'Press Enter' }
+        '15' { $latest = Join-Path $ProjectRoot 'Logs/log.txt'; if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
+        '16' { if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) { Publish-SportLog -RepoRoot $ProjectRoot } else { Write-Host 'GitHub module not installed yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
         '0' { Write-Host 'Exiting Vietnam Sports Hub...'; return }
         default { Write-Host 'Invalid selection.' -ForegroundColor Yellow; Start-Sleep -Milliseconds 700 }
     }
