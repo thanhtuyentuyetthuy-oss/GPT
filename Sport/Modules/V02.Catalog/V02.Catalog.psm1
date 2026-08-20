@@ -37,12 +37,17 @@ function ConvertTo-V02Preview {
         } catch {}
     }
 
+    $descriptionParts = @()
+    if ($Event.strLeague) { $descriptionParts += [string]$Event.strLeague }
+    if ($Event.strStatus) { $descriptionParts += [string]$Event.strStatus }
+    $description = $descriptionParts -join ' • '
+
     [PSCustomObject]@{
         id = "sports:event:$($Event.idEvent)"
         type = 'channel'
         name = if ($Event.strEvent) { [string]$Event.strEvent } else { 'Unknown Match' }
         poster = if ($Event.strThumb) { [string]$Event.strThumb } elseif ($Event.strPoster) { [string]$Event.strPoster } else { $null }
-        description = @($Event.strLeague, $Event.strStatus) | Where-Object { $_ } | Join-String -Separator ' • '
+        description = $description
         genres = @('FOOTBALL')
         releaseInfo = [string]$Event.dateEvent
         behaviorHints = @{ defaultVideoId = "sports:event:$($Event.idEvent)" }
