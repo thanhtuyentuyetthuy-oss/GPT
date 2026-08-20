@@ -1,6 +1,8 @@
 Set-StrictMode -Version Latest
 $script:Version='0.4.4'
-$script:CacheRoot=Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'Data\Cache\V02.Meta'
+$script:SportRoot = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$script:RepoRoot = Split-Path $script:SportRoot -Parent
+$script:CacheRoot=Join-Path $script:RepoRoot 'Data\Cache\V02.Meta'
 
 function Get-MetaCachePath {
  param([Parameter(Mandatory)][string]$EventId)
@@ -27,7 +29,7 @@ function ConvertTo-StremioMeta {
 function Get-V044MetaOnDemand {
  [CmdletBinding()]param([Parameter(Mandatory)][string]$EventId)
  $cache=Get-MetaCachePath -EventId $EventId
- if(-not $cache){ throw "V0.2.3 meta cache not found for event $EventId. Run V0.2.3 Select/Meta test first." }
+ if(-not $cache){ throw "V0.2.3 meta cache not found for event $EventId. Run V0.2.3 Select/Meta test first. Expected cache root: $script:CacheRoot" }
  $payload=Get-Content -Path $cache -Raw -Encoding UTF8 | ConvertFrom-Json
  $item=if($payload.meta){$payload.meta}else{$payload}
  [PSCustomObject]@{Version=$script:Version;Status='PASS';Source='V0.2.3 META CACHE ONLY';EventId=$EventId;MetaCacheRead=$true;ApiRequests=0;MetaLoaded=$true;StremioMeta=(ConvertTo-StremioMeta -Item $item -EventId $EventId);MetaCachePath=$cache}
