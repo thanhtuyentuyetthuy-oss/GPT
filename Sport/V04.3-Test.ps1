@@ -1,10 +1,10 @@
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
+$repoRoot = Split-Path -Parent $projectRoot
 $addonRoot = Join-Path $projectRoot 'V04.AddonServer'
 $addonScript = Join-Path $addonRoot 'addon.js'
-# V0.2.1 stores Data beside Sport at the repository root: D:\GPT\GPT-Git\Data\Cache\...
-$cacheRoot = Join-Path (Split-Path -Parent $projectRoot) 'Data\Cache\V02.Catalog'
+$cacheRoot = Join-Path $repoRoot 'Data\Cache\V02.Catalog'
 $port = 7000
 $base = "http://127.0.0.1:$port"
 $process = $null
@@ -28,7 +28,8 @@ try {
     if (-not (Test-Path $cacheRoot)) { throw "V0.2.1 catalog cache directory not found: $cacheRoot" }
 
     $cacheFiles = @(Get-ChildItem -Path $cacheRoot -Filter 'catalog-*.json' -File | Sort-Object Name -Descending)
-    if ($cacheFiles.Count -eq 0) { throw 'No V0.2.1 catalog cache file found.' }
+    if ($cacheFiles.Count -eq 0) { throw "No V0.2.1 catalog cache file found in $cacheRoot" }
+
     $latestCache = $cacheFiles[0].FullName
     $cachePayload = Get-Content -Path $latestCache -Raw -Encoding UTF8 | ConvertFrom-Json
     $inputCount = @($cachePayload.metas).Count
