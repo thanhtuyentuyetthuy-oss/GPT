@@ -142,7 +142,13 @@ while ($true) {
             }
             Read-Host 'Press Enter'
         }
-        '0' { break }
-        default { Write-Host 'Invalid selection.' -ForegroundColor Yellow; Start-Sleep -Milliseconds 700 }
+        '0' {
+            Write-Host 'Exiting Vietnam Sports Hub...'
+            return
+        }
+        default {
+            Write-Host 'Invalid selection.' -ForegroundColor Yellow
+            Start-Sleep -Milliseconds 700
+        }
     }
 }
