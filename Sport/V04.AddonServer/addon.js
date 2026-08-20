@@ -20,9 +20,19 @@ function readJson(filePath) {
 const manifest = readJson(MANIFEST_PATH);
 const sourceFixture = readJson(SOURCE_FIXTURE_PATH);
 
+function corsHeaders() {
+  return {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept',
+    'Access-Control-Max-Age': '86400'
+  };
+}
+
 function sendJson(res, status, payload) {
   const body = JSON.stringify(payload, null, 2);
   res.writeHead(status, {
+    ...corsHeaders(),
     'Content-Type': 'application/json; charset=utf-8',
     'Cache-Control': 'no-store',
     'Content-Length': Buffer.byteLength(body)
@@ -32,6 +42,7 @@ function sendJson(res, status, payload) {
 
 function sendText(res, status, body) {
   res.writeHead(status, {
+    ...corsHeaders(),
     'Content-Type': 'text/plain; charset=utf-8',
     'Cache-Control': 'no-store',
     'Content-Length': Buffer.byteLength(body)
@@ -101,113 +112,45 @@ function buildCatalogFromCache(cachePath) {
 
 function buildMetaFromCache(eventId) {
   const cachePath = findMetaCache(eventId);
-  if (!cachePath) {
-    return { error: `V0.2.3 meta cache not found for event ${safeEventId(eventId)}.` };
-  }
+  if (!cachePath) return { error: `V0.2.3 meta cache not found for event ${safeEventId(eventId)}.` };
   const payload = readJson(cachePath);
   const event = payload.event || payload.meta || payload;
   const id = `sports:event:${safeEventId(eventId)}`;
   const name = event.strEvent || event.eventName || 'Selected Match';
-  return {
-    meta: {
-      id,
-      type: 'tv',
-      name,
-      description: event.strLeague || event.strSport || '',
-      poster: event.strThumb || undefined,
-      videos: [{
-        id,
-        title: name,
-        released: event.dateEvent || undefined
-      }]
-    }
-  };
+  return { meta: { id, type: 'tv', name, description: event.strLeague || event.strSport || '', poster: event.strThumb || undefined, videos: [{ id, title: name, released: event.dateEvent || undefined }] } };
 }
 
 function buildStreamsFromCache(eventId) {
   const cachePath = findStreamCache(eventId);
-  if (!cachePath) {
-    return { error: `V0.2.4 stream cache not found for event ${safeEventId(eventId)}.` };
-  }
+  if (!cachePath) return { error: `V0.2.4 stream cache not found for event ${safeEventId(eventId)}.` };
   const payload = readJson(cachePath);
   const sourceUrl = String(payload.sourceUrl || '');
-  if (!/^https?:\/\//i.test(sourceUrl)) {
-    return { error: `Cached sourceUrl is not a valid HTTP(S) URL for event ${safeEventId(eventId)}.` };
-  }
+  if (!/^https?:\/\//i.test(sourceUrl)) return { error: `Cached sourceUrl is not a valid HTTP(S) URL for event ${safeEventId(eventId)}.` };
   const ttl = Number(payload.ttlSeconds || 120);
-  return {
-    streams: [{
-      name: 'Authorized public source',
-      title: 'Public / authorized source',
-      url: sourceUrl,
-      behaviorHints: { bingeGroup: 'v046-authorized-public' }
-    }],
-    cacheMaxAge: ttl,
-    meta: {
-      id: `sports:event:${safeEventId(eventId)}`,
-      sourcePolicy: 'AUTHORIZED-ONLY'
-    }
-  };
+  return { streams: [{ name: 'Authorized public source', title: 'Public / authorized source', url: sourceUrl, behaviorHints: { bingeGroup: 'v046-authorized-public' } }], cacheMaxAge: ttl, meta: { id: `sports:event:${safeEventId(eventId)}`, sourcePolicy: 'AUTHORIZED-ONLY' } };
 }
 
 const server = http.createServer((req, res) => {
   try {
+    if (req.method === 'OPTIONS') { res.writeHead(204, corsHeaders()); res.end(); return; }
     const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
     const pathname = decodeURIComponent(requestUrl.pathname).replace(/\/$/, '') || '/';
-
-    if (req.method !== 'GET') {
-      sendText(res, 405, 'Method Not Allowed');
-      return;
-    }
-
-    if (pathname === '/manifest.json') {
-      sendJson(res, 200, manifest);
-      return;
-    }
-
+    if (req.method !== 'GET') { sendText(res, 405, 'Method Not Allowed'); return; }
+    if (pathname === '/manifest.json') { sendJson(res, 200, manifest); return; }
     if (pathname === '/catalog/tv/vietnam-sports.json' || pathname === '/catalog/tv/vietnam-sports') {
       const cachePath = findLatestCatalogCache();
-      if (!cachePath) {
-        sendJson(res, 503, { error: 'V0.2.1 catalog cache not found.' });
-        return;
-      }
-      sendJson(res, 200, buildCatalogFromCache(cachePath));
-      return;
+      if (!cachePath) { sendJson(res, 503, { error: 'V0.2.1 catalog cache not found.' }); return; }
+      sendJson(res, 200, buildCatalogFromCache(cachePath)); return;
     }
-
     const metaMatch = pathname.match(/^\/meta\/tv\/([^/]+)(?:\.json)?$/);
-    if (metaMatch) {
-      const eventId = safeEventId(metaMatch[1]);
-      const payload = buildMetaFromCache(eventId);
-      sendJson(res, payload.error ? 503 : 200, payload);
-      return;
-    }
-
+    if (metaMatch) { const payload = buildMetaFromCache(safeEventId(metaMatch[1])); sendJson(res, payload.error ? 503 : 200, payload); return; }
     const streamMatch = pathname.match(/^\/stream\/tv\/([^/]+)(?:\.json)?$/);
-    if (streamMatch) {
-      const eventId = safeEventId(streamMatch[1]);
-      const payload = buildStreamsFromCache(eventId);
-      sendJson(res, payload.error ? 503 : 200, payload);
-      return;
-    }
-
+    if (streamMatch) { const payload = buildStreamsFromCache(safeEventId(streamMatch[1])); sendJson(res, payload.error ? 503 : 200, payload); return; }
     if (pathname === '/health' || pathname === '/healthz') {
-      sendJson(res, 200, {
-        service: 'Vietnam Sports Hub',
-        version: '0.4.6',
-        status: 'OK',
-        manifest: '/manifest.json',
-        catalogSource: 'V0.2.1 DAILY CACHE',
-        metaSource: 'V0.2.3 META CACHE',
-        streamSource: 'V0.2.4 STREAM CACHE'
-      });
-      return;
+      sendJson(res, 200, { service: 'Vietnam Sports Hub', version: '0.4.6', status: 'OK', manifest: '/manifest.json', catalogSource: 'V0.2.1 DAILY CACHE', metaSource: 'V0.2.3 META CACHE', streamSource: 'V0.2.4 STREAM CACHE', sourcePolicy: 'AUTHORIZED-ONLY' }); return;
     }
-
     sendJson(res, 404, { error: 'Not Found' });
-  } catch (error) {
-    sendJson(res, 500, { error: error.message });
-  }
+  } catch (error) { sendJson(res, 500, { error: error.message }); }
 });
 
 server.listen(PORT, HOST, () => {
@@ -216,5 +159,6 @@ server.listen(PORT, HOST, () => {
   console.log(`Catalog : http://127.0.0.1:${PORT}/catalog/tv/vietnam-sports.json`);
   console.log(`Meta    : http://127.0.0.1:${PORT}/meta/tv/sports:event:2397275.json`);
   console.log(`Stream  : http://127.0.0.1:${PORT}/stream/tv/sports:event:2397275.json`);
-  console.log('Integration: Catalog + Meta + Stream are cache-only adapters; no upstream API request from addon server');
+  console.log('CORS    : enabled');
+  console.log('Integration: cache-only adapters; no upstream API request from addon server');
 });
