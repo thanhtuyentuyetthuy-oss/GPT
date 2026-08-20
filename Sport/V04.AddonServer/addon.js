@@ -11,7 +11,8 @@ const SOURCE_FIXTURE_PATH = path.join(SPORT_ROOT, 'TestFixtures', 'V04.0.PublicS
 const CACHE_ROOT = path.join(REPO_ROOT, 'Data', 'Cache', 'V02.Catalog');
 
 function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  const text = fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '');
+  return JSON.parse(text);
 }
 
 const manifest = readJson(MANIFEST_PATH);
