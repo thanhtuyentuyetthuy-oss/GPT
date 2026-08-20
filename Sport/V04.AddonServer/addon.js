@@ -12,6 +12,13 @@ const CATALOG_CACHE_ROOT = path.join(REPO_ROOT, 'Data', 'Cache', 'V02.Catalog');
 const META_CACHE_ROOT = path.join(REPO_ROOT, 'Data', 'Cache', 'V02.Meta');
 const STREAM_CACHE_ROOT = path.join(REPO_ROOT, 'Data', 'Cache', 'V02.Stream');
 
+// V0.4.7 safety gate: only explicitly approved test/public hosts are accepted.
+// Production broadcasters must be added deliberately after authorization is verified.
+const ALLOWED_SOURCE_HOSTS = new Set([
+  'test-streams.mux.dev',
+  'stream.mux.com'
+]);
+
 function readJson(filePath) {
   const text = fs.readFileSync(filePath, 'utf8').replace(/^\uFEFF/, '');
   return JSON.parse(text);
@@ -120,14 +127,38 @@ function buildMetaFromCache(eventId) {
   return { meta: { id, type: 'tv', name, description: event.strLeague || event.strSport || '', poster: event.strThumb || undefined, videos: [{ id, title: name, released: event.dateEvent || undefined }] } };
 }
 
+function isAllowedSourceUrl(sourceUrl) {
+  try {
+    const uri = new URL(sourceUrl);
+    return ['http:', 'https:'].includes(uri.protocol) && ALLOWED_SOURCE_HOSTS.has(uri.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
 function buildStreamsFromCache(eventId) {
   const cachePath = findStreamCache(eventId);
   if (!cachePath) return { error: `V0.2.4 stream cache not found for event ${safeEventId(eventId)}.` };
   const payload = readJson(cachePath);
   const sourceUrl = String(payload.sourceUrl || '');
-  if (!/^https?:\/\//i.test(sourceUrl)) return { error: `Cached sourceUrl is not a valid HTTP(S) URL for event ${safeEventId(eventId)}.` };
+  if (!isAllowedSourceUrl(sourceUrl)) {
+    return { error: `Cached source is not approved by the V0.4.7 source policy for event ${safeEventId(eventId)}.` };
+  }
   const ttl = Number(payload.ttlSeconds || 120);
-  return { streams: [{ name: 'Authorized public source', title: 'Public / authorized source', url: sourceUrl, behaviorHints: { bingeGroup: 'v046-authorized-public' } }], cacheMaxAge: ttl, meta: { id: `sports:event:${safeEventId(eventId)}`, sourcePolicy: 'AUTHORIZED-ONLY' } };
+  return {
+    streams: [{
+      name: 'Public test source',
+      title: 'Public HLS test stream',
+      url: sourceUrl,
+      behaviorHints: { bingeGroup: 'v047-public-test' }
+    }],
+    cacheMaxAge: ttl,
+    meta: {
+      id: `sports:event:${safeEventId(eventId)}`,
+      sourcePolicy: 'AUTHORIZED-ONLY',
+      sourceHost: new URL(sourceUrl).hostname
+    }
+  };
 }
 
 const server = http.createServer((req, res) => {
@@ -147,18 +178,30 @@ const server = http.createServer((req, res) => {
     const streamMatch = pathname.match(/^\/stream\/tv\/([^/]+)(?:\.json)?$/);
     if (streamMatch) { const payload = buildStreamsFromCache(safeEventId(streamMatch[1])); sendJson(res, payload.error ? 503 : 200, payload); return; }
     if (pathname === '/health' || pathname === '/healthz') {
-      sendJson(res, 200, { service: 'Vietnam Sports Hub', version: '0.4.6', status: 'OK', manifest: '/manifest.json', catalogSource: 'V0.2.1 DAILY CACHE', metaSource: 'V0.2.3 META CACHE', streamSource: 'V0.2.4 STREAM CACHE', sourcePolicy: 'AUTHORIZED-ONLY' }); return;
+      sendJson(res, 200, {
+        service: 'Vietnam Sports Hub',
+        version: '0.4.7',
+        status: 'OK',
+        manifest: '/manifest.json',
+        catalogSource: 'V0.2.1 DAILY CACHE',
+        metaSource: 'V0.2.3 META CACHE',
+        streamSource: 'V0.2.4 STREAM CACHE',
+        sourcePolicy: 'AUTHORIZED-ONLY',
+        sourceGate: 'ALLOWLISTED-PUBLIC-TEST-HOSTS'
+      });
+      return;
     }
     sendJson(res, 404, { error: 'Not Found' });
   } catch (error) { sendJson(res, 500, { error: error.message }); }
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`Vietnam Sports Hub v0.4.6 listening on http://${HOST}:${PORT}`);
+  console.log(`Vietnam Sports Hub v0.4.7 listening on http://${HOST}:${PORT}`);
   console.log(`Manifest: http://127.0.0.1:${PORT}/manifest.json`);
   console.log(`Catalog : http://127.0.0.1:${PORT}/catalog/tv/vietnam-sports.json`);
   console.log(`Meta    : http://127.0.0.1:${PORT}/meta/tv/sports:event:2397275.json`);
   console.log(`Stream  : http://127.0.0.1:${PORT}/stream/tv/sports:event:2397275.json`);
   console.log('CORS    : enabled');
+  console.log('Source gate: allowlisted public test hosts only');
   console.log('Integration: cache-only adapters; no upstream API request from addon server');
 });
