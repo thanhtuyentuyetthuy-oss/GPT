@@ -43,32 +43,22 @@ function Show-SportMenu {
     Write-Host '[10] Run V0.2.4 Stream cache test'
     Write-Host '[11] Run V0.3.1 Live contract test'
     Write-Host '[12] Run V0.3.2 Local time state test'
-    Write-Host '[13] Show latest log'
-    Write-Host '[14] Publish log to GitHub'
+    Write-Host '[13] Run V0.3.3 Active-match Live session contract test'
+    Write-Host '[14] Show latest log'
+    Write-Host '[15] Publish log to GitHub'
     Write-Host '[0] Exit'
     Write-Host ''
 }
 
 function Invoke-V01 {
     $module = Join-Path $ModulesRoot 'V01.Catalog/V01.Catalog.psm1'
-    if (-not (Import-SportModule -Path $module)) {
-        Write-Host 'V0.1 module is not installed yet.' -ForegroundColor Yellow
-        return
-    }
-    if (Get-Command Test-V01Catalog -ErrorAction SilentlyContinue) {
-        Test-V01Catalog
-    } else {
-        Write-Host 'Test-V01Catalog is not exported by the V0.1 module.' -ForegroundColor Yellow
-    }
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.1 module is not installed yet.' -ForegroundColor Yellow; return }
+    if (Get-Command Test-V01Catalog -ErrorAction SilentlyContinue) { Test-V01Catalog } else { Write-Host 'Test-V01Catalog is not exported by the V0.1 module.' -ForegroundColor Yellow }
 }
 
 function Invoke-V02Contract {
     $module = Join-Path $ModulesRoot 'V02.Catalog/V02.Catalog.psm1'
-    if (-not (Import-SportModule -Path $module)) {
-        Write-Host 'V0.2.1 Catalog module is not installed yet.' -ForegroundColor Yellow
-        return
-    }
-
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.2.1 Catalog module is not installed yet.' -ForegroundColor Yellow; return }
     $result = Test-V02Catalog
     Write-Host "Version: $($result.Version)"
     Write-Host "Status : $($result.Status)"
@@ -78,29 +68,19 @@ function Invoke-V02Contract {
 
 function Invoke-V02Integration {
     $module = Join-Path $ModulesRoot 'V02.Catalog/V02.Catalog.psm1'
-    if (-not (Import-SportModule -Path $module)) {
-        Write-Host 'V0.2.1 Catalog module is not installed yet.' -ForegroundColor Yellow
-        return
-    }
-
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.2.1 Catalog module is not installed yet.' -ForegroundColor Yellow; return }
     $result = Test-V02CatalogIntegration
     Write-Host "Version      : $($result.Version)"
     Write-Host "Status       : $($result.Status)"
     Write-Host "API Reachable: $($result.ApiReachable)"
     Write-Host "Catalog Count: $($result.CatalogCount)"
     Write-Host "Cache Path   : $($result.CachePath)"
-    if ($result.Error) {
-        Write-Host "Error        : $($result.Error)" -ForegroundColor Red
-    }
+    if ($result.Error) { Write-Host "Error        : $($result.Error)" -ForegroundColor Red }
 }
 
 function Invoke-V022LeaguePriority {
     $module = Join-Path $ModulesRoot 'V02.Leagues/V02.Leagues.psm1'
-    if (-not (Import-SportModule -Path $module)) {
-        Write-Host 'V0.2.2 League priority module is not installed yet.' -ForegroundColor Yellow
-        return
-    }
-
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.2.2 League priority module is not installed yet.' -ForegroundColor Yellow; return }
     $result = Test-V022LeaguePriority
     Write-Host "Version     : $($result.Version)"
     Write-Host "Status      : $($result.Status)"
@@ -110,18 +90,12 @@ function Invoke-V022LeaguePriority {
     Write-Host "Total       : $($result.Total)"
     Write-Host "Priority    : $($result.Priority)"
     Write-Host "Other       : $($result.Other)"
-    if ($result.Error) {
-        Write-Host "Error       : $($result.Error)" -ForegroundColor Red
-    }
+    if ($result.Error) { Write-Host "Error       : $($result.Error)" -ForegroundColor Red }
 }
 
 function Invoke-V023Meta {
     $module = Join-Path $ModulesRoot 'V02.Meta/V02.Meta.psm1'
-    if (-not (Import-SportModule -Path $module)) {
-        Write-Host 'V0.2.3 Meta module is not installed yet.' -ForegroundColor Yellow
-        return
-    }
-
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.2.3 Meta module is not installed yet.' -ForegroundColor Yellow; return }
     $eventId = Read-Host 'Selected Event ID (Enter = first event in current catalog cache)'
     $result = Test-V023MetaOnDemand -EventId $eventId
     Write-Host "Version        : $($result.Version)"
@@ -133,18 +107,12 @@ function Invoke-V023Meta {
     Write-Host "Meta Cache Hit : $($result.MetaCacheHit)"
     Write-Host "Meta Loaded    : $($result.MetaLoaded)"
     Write-Host "Meta Cache Path: $($result.MetaCachePath)"
-    if ($result.Error) {
-        Write-Host "Error          : $($result.Error)" -ForegroundColor Red
-    }
+    if ($result.Error) { Write-Host "Error          : $($result.Error)" -ForegroundColor Red }
 }
 
 function Invoke-V024StreamContract {
     $module = Join-Path $ModulesRoot 'V02.Stream/V02.Stream.psm1'
-    if (-not (Import-SportModule -Path $module)) {
-        Write-Host 'V0.2.4 Stream module is not installed yet.' -ForegroundColor Yellow
-        return
-    }
-
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.2.4 Stream module is not installed yet.' -ForegroundColor Yellow; return }
     $result = Test-V024StreamContract
     Write-Host "Version              : $($result.Version)"
     Write-Host "Status               : $($result.Status)"
@@ -154,11 +122,7 @@ function Invoke-V024StreamContract {
 
 function Invoke-V024Resolver {
     $module = Join-Path $ModulesRoot 'V02.Stream/V02.Stream.psm1'
-    if (-not (Import-SportModule -Path $module)) {
-        Write-Host 'V0.2.4 Stream module is not installed yet.' -ForegroundColor Yellow
-        return
-    }
-
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.2.4 Stream module is not installed yet.' -ForegroundColor Yellow; return }
     $eventId = Read-Host 'Selected Event ID'
     $sourceUrl = Read-Host 'Authorized public/official source URL'
     $result = Test-V024ResolverIntegration -EventId $eventId -SourceUrl $sourceUrl
@@ -171,26 +135,17 @@ function Invoke-V024Resolver {
     Write-Host "URL Valid              : $($result.UrlValid)"
     Write-Host "Resolver Requests      : $($result.ResolverRequest)"
     Write-Host "Resolved               : $($result.Resolved)"
-    if ($result.Error) {
-        Write-Host "Error                  : $($result.Error)" -ForegroundColor Red
-    }
+    if ($result.Error) { Write-Host "Error                  : $($result.Error)" -ForegroundColor Red }
 }
 
 function Invoke-V024StreamCache {
     $module = Join-Path $ModulesRoot 'V02.Stream/V02.Stream.psm1'
-    if (-not (Import-SportModule -Path $module)) {
-        Write-Host 'V0.2.4 Stream module is not installed yet.' -ForegroundColor Yellow
-        return
-    }
-
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.2.4 Stream module is not installed yet.' -ForegroundColor Yellow; return }
     $eventId = Read-Host 'Selected Event ID'
     $sourceUrl = Read-Host 'Authorized public/official source URL'
     $ttlText = Read-Host 'TTL seconds (Enter = default 120)'
     $ttlSeconds = 120
-    if (-not [string]::IsNullOrWhiteSpace($ttlText)) {
-        [int]$ttlSeconds = $ttlText
-    }
-
+    if (-not [string]::IsNullOrWhiteSpace($ttlText)) { [int]$ttlSeconds = $ttlText }
     $result = Test-V024StreamCache -EventId $eventId -SourceUrl $sourceUrl -TtlSeconds $ttlSeconds
     Write-Host "Version                : $($result.Version)"
     Write-Host "Status                 : $($result.Status)"
@@ -204,18 +159,12 @@ function Invoke-V024StreamCache {
     Write-Host "Resolver Requests #2   : $($result.ResolverRequestsSecond)"
     Write-Host "TTL Seconds            : $($result.TtlSeconds)"
     Write-Host "Cache Path             : $($result.CachePath)"
-    if ($result.Error) {
-        Write-Host "Error                  : $($result.Error)" -ForegroundColor Red
-    }
+    if ($result.Error) { Write-Host "Error                  : $($result.Error)" -ForegroundColor Red }
 }
 
 function Invoke-V031LiveContract {
     $module = Join-Path $ModulesRoot 'V03.Live/V03.Live.psm1'
-    if (-not (Import-SportModule -Path $module)) {
-        Write-Host 'V0.3.1 Live module is not installed yet.' -ForegroundColor Yellow
-        return
-    }
-
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.3.1 Live module is not installed yet.' -ForegroundColor Yellow; return }
     $result = Test-V031LiveContract
     Write-Host "Version    : $($result.Version)"
     Write-Host "Status     : $($result.Status)"
@@ -225,11 +174,7 @@ function Invoke-V031LiveContract {
 
 function Invoke-V032LocalTimeState {
     $module = Join-Path $ModulesRoot 'V03.LocalTimeState/V03.LocalTimeState.psm1'
-    if (-not (Import-SportModule -Path $module)) {
-        Write-Host 'V0.3.2 Local Time State module is not installed yet.' -ForegroundColor Yellow
-        return
-    }
-
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.3.2 Local Time State module is not installed yet.' -ForegroundColor Yellow; return }
     $result = Test-V032LocalTimeState
     Write-Host "Version       : $($result.Version)"
     Write-Host "Status        : $($result.Status)"
@@ -241,24 +186,26 @@ function Invoke-V032LocalTimeState {
     Write-Host "Upcoming      : $($result.Upcoming)"
     Write-Host "Unknown       : $($result.Unknown)"
     Write-Host "TimeZone      : $($result.TimeZone)"
-    if ($result.Error) {
-        Write-Host "Error         : $($result.Error)" -ForegroundColor Red
-    }
+    if ($result.Error) { Write-Host "Error         : $($result.Error)" -ForegroundColor Red }
+}
+
+function Invoke-V033LiveSessionContract {
+    $module = Join-Path $ModulesRoot 'V03.LiveSession/V03.LiveSession.psm1'
+    if (-not (Import-SportModule -Path $module)) { Write-Host 'V0.3.3 Live Session module is not installed yet.' -ForegroundColor Yellow; return }
+    $result = Test-V033LiveSessionContract
+    Write-Host "Version                   : $($result.Version)"
+    Write-Host "Status                    : $($result.Status)"
+    Write-Host $result.Message
+    $result.Checks | Format-List
 }
 
 function Show-Status {
     $candidates = Get-ChildItem -Path $ModulesRoot -Directory -ErrorAction SilentlyContinue
-    if (-not $candidates) {
-        Write-Host 'No version modules have been added yet.' -ForegroundColor Yellow
-        return
-    }
+    if (-not $candidates) { Write-Host 'No version modules have been added yet.' -ForegroundColor Yellow; return }
     foreach ($dir in $candidates) {
         $passFile = Join-Path $dir.FullName 'PASS.md'
-        if (Test-Path $passFile) {
-            Write-Host "[$($dir.Name)] PASS/FREEZE" -ForegroundColor Green
-        } else {
-            Write-Host "[$($dir.Name)] DEVELOPMENT" -ForegroundColor Cyan
-        }
+        if (Test-Path $passFile) { Write-Host "[$($dir.Name)] PASS/FREEZE" -ForegroundColor Green }
+        else { Write-Host "[$($dir.Name)] DEVELOPMENT" -ForegroundColor Cyan }
     }
 }
 
@@ -278,8 +225,9 @@ while ($true) {
         '10' { Invoke-V024StreamCache; Read-Host 'Press Enter' }
         '11' { Invoke-V031LiveContract; Read-Host 'Press Enter' }
         '12' { Invoke-V032LocalTimeState; Read-Host 'Press Enter' }
-        '13' { $latest = Join-Path $ProjectRoot 'Logs/log.txt'; if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
-        '14' { if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) { Publish-SportLog -RepoRoot $ProjectRoot } else { Write-Host 'GitHub module not installed yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
+        '13' { Invoke-V033LiveSessionContract; Read-Host 'Press Enter' }
+        '14' { $latest = Join-Path $ProjectRoot 'Logs/log.txt'; if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
+        '15' { if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) { Publish-SportLog -RepoRoot $ProjectRoot } else { Write-Host 'GitHub module not installed yet.' -ForegroundColor Yellow }; Read-Host 'Press Enter' }
         '0' { Write-Host 'Exiting Vietnam Sports Hub...'; return }
         default { Write-Host 'Invalid selection.' -ForegroundColor Yellow; Start-Sleep -Milliseconds 700 }
     }
