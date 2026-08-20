@@ -59,12 +59,23 @@ function Get-V022PriorityCatalog {
 
     $rows = @(
         foreach ($item in $items) {
-            $league = $null
-            if ($item.event -and $item.event.league) {
-                $league = [string]$item.event.league
+            # StrictMode-safe reading: older cache files may not contain every optional property.
+            $eventData = $null
+            $descriptionValue = $null
+
+            if ($item -and $item.PSObject.Properties['event']) {
+                $eventData = $item.event
             }
-            elseif ($item.description) {
-                $league = ([string]$item.description -split ' • ')[0]
+            if ($item -and $item.PSObject.Properties['description']) {
+                $descriptionValue = [string]$item.description
+            }
+
+            $league = $null
+            if ($eventData -and $eventData.PSObject.Properties['league'] -and $eventData.league) {
+                $league = [string]$eventData.league
+            }
+            elseif ($descriptionValue) {
+                $league = ($descriptionValue -split ' • ')[0]
             }
 
             $rule = Get-V022LeagueInfo -League $league
@@ -78,8 +89,15 @@ function Get-V022PriorityCatalog {
         }
     )
 
-    $priority = @($rows | Where-Object { $_.priority } | Sort-Object rank, @{Expression = { $_.event.name } })
-    $other = @($rows | Where-Object { -not $_.priority } | Sort-Object @{Expression = { [string]$_.event.releaseInfo } }, @{Expression = { $_.event.name } })
+    $priority = @($rows | Where-Object { $_.priority } | Sort-Object rank, @{Expression = {
+        if ($_.event -and $_.event.PSObject.Properties['name']) { [string]$_.event.name } else { '' }
+    }})
+
+    $other = @($rows | Where-Object { -not $_.priority } | Sort-Object @{Expression = {
+        if ($_.event -and $_.event.PSObject.Properties['releaseInfo']) { [string]$_.event.releaseInfo } else { '' }
+    }}, @{Expression = {
+        if ($_.event -and $_.event.PSObject.Properties['name']) { [string]$_.event.name } else { '' }
+    }})
 
     [PSCustomObject]@{
         version = $script:ModuleVersion
