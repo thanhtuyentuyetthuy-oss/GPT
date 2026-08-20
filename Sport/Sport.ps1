@@ -39,8 +39,9 @@ function Show-SportMenu {
     Write-Host '[6] Run V0.2.2 League priority test'
     Write-Host '[7] Run V0.2.3 Select/Meta on-demand test'
     Write-Host '[8] Run V0.2.4 Stream contract test'
-    Write-Host '[9] Show latest log'
-    Write-Host '[10] Publish log to GitHub'
+    Write-Host '[9] Run V0.2.4 Resolver integration test'
+    Write-Host '[10] Show latest log'
+    Write-Host '[11] Publish log to GitHub'
     Write-Host '[0] Exit'
     Write-Host ''
 }
@@ -148,6 +149,30 @@ function Invoke-V024StreamContract {
     $result.Checks | Format-List
 }
 
+function Invoke-V024ResolverIntegration {
+    $module = Join-Path $ModulesRoot 'V02.Stream/V02.Stream.psm1'
+    if (-not (Import-SportModule -Path $module)) {
+        Write-Host 'V0.2.4 Stream module is not installed yet.' -ForegroundColor Yellow
+        return
+    }
+
+    $eventId = Read-Host 'Selected Event ID'
+    $sourceUrl = Read-Host 'Authorized public/official source URL'
+    $result = Test-V024ResolverIntegration -EventId $eventId -SourceUrl $sourceUrl
+    Write-Host "Version                : $($result.Version)"
+    Write-Host "Status                 : $($result.Status)"
+    Write-Host "Event ID               : $($result.EventId)"
+    Write-Host "Play Requested         : $($result.PlayRequested)"
+    Write-Host "Authorized Source Only : $($result.AuthorizedSourceOnly)"
+    Write-Host "Source Provided        : $($result.SourceProvided)"
+    Write-Host "URL Valid              : $($result.UrlValid)"
+    Write-Host "Resolver Requests      : $($result.ResolverRequest)"
+    Write-Host "Resolved               : $($result.Resolved)"
+    if ($result.Error) {
+        Write-Host "Error                  : $($result.Error)" -ForegroundColor Red
+    }
+}
+
 function Show-Status {
     $candidates = Get-ChildItem -Path $ModulesRoot -Directory -ErrorAction SilentlyContinue
     if (-not $candidates) {
@@ -203,11 +228,15 @@ while ($true) {
             Read-Host 'Press Enter'
         }
         '9' {
+            Invoke-V024ResolverIntegration
+            Read-Host 'Press Enter'
+        }
+        '10' {
             $latest = Join-Path $ProjectRoot 'Logs/log.txt'
             if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }
             Read-Host 'Press Enter'
         }
-        '10' {
+        '11' {
             if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) {
                 Publish-SportLog -RepoRoot $ProjectRoot
             } else {
