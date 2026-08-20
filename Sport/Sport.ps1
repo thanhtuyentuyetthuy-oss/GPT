@@ -35,8 +35,9 @@ function Show-SportMenu {
     Write-Host '[2] Check module status'
     Write-Host '[3] Run V0.1 test'
     Write-Host '[4] Run V0.2.1 Catalog test'
-    Write-Host '[5] Show latest log'
-    Write-Host '[6] Publish log to GitHub'
+    Write-Host '[5] Run V0.2.1 API/Cache integration test'
+    Write-Host '[6] Show latest log'
+    Write-Host '[7] Publish log to GitHub'
     Write-Host '[0] Exit'
     Write-Host ''
 }
@@ -54,7 +55,7 @@ function Invoke-V01 {
     }
 }
 
-function Invoke-V02 {
+function Invoke-V02Contract {
     $module = Join-Path $ModulesRoot 'V02.Catalog/V02.Catalog.psm1'
     if (-not (Import-SportModule -Path $module)) {
         Write-Host 'V0.2.1 Catalog module is not installed yet.' -ForegroundColor Yellow
@@ -66,6 +67,24 @@ function Invoke-V02 {
     Write-Host "Status : $($result.Status)"
     Write-Host $result.Message
     $result.Checks | Format-List
+}
+
+function Invoke-V02Integration {
+    $module = Join-Path $ModulesRoot 'V02.Catalog/V02.Catalog.psm1'
+    if (-not (Import-SportModule -Path $module)) {
+        Write-Host 'V0.2.1 Catalog module is not installed yet.' -ForegroundColor Yellow
+        return
+    }
+
+    $result = Test-V02CatalogIntegration
+    Write-Host "Version      : $($result.Version)"
+    Write-Host "Status       : $($result.Status)"
+    Write-Host "API Reachable: $($result.ApiReachable)"
+    Write-Host "Catalog Count: $($result.CatalogCount)"
+    Write-Host "Cache Path   : $($result.CachePath)"
+    if ($result.Error) {
+        Write-Host "Error        : $($result.Error)" -ForegroundColor Red
+    }
 }
 
 function Show-Status {
@@ -103,15 +122,19 @@ while ($true) {
             Read-Host 'Press Enter'
         }
         '4' {
-            Invoke-V02
+            Invoke-V02Contract
             Read-Host 'Press Enter'
         }
         '5' {
+            Invoke-V02Integration
+            Read-Host 'Press Enter'
+        }
+        '6' {
             $latest = Join-Path $ProjectRoot 'Logs/log.txt'
             if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }
             Read-Host 'Press Enter'
         }
-        '6' {
+        '7' {
             if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) {
                 Publish-SportLog -RepoRoot $ProjectRoot
             } else {
