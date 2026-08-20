@@ -1,8 +1,8 @@
 {
   "version": "0.2.4",
   "eventId": "2397275",
-  "sourceUrl": "https://raw.githubusercontent.com/vietng228/m3u/refs/heads/main/new.m3u",
-  "sourceType": "user-provided-public-test-fixture",
+  "sourceUrl": "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8",
+  "sourceType": "public-test-stream",
   "sourcePolicy": "AUTHORIZED-ONLY",
-  "notes": "Stored only as a resolver/cache test fixture. The project does not extract hidden endpoints, bypass access controls, or resolve protected streams. Verify that the source is authorized for intended use before production playback."
+  "notes": "Temporary playback-validation fixture only. This is a public HLS test stream hosted by Mux, not a sports broadcast and not a production source. The project does not extract hidden endpoints, bypass access controls, or resolve protected streams. Replace only with a source that is explicitly authorized for the intended content before production playback."
 }
