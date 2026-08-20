@@ -17,7 +17,8 @@ function Import-SportModule {
 $sharedModules = @(
     (Join-Path $SharedRoot 'Logging.psm1'),
     (Join-Path $SharedRoot 'GitHub.psm1'),
-    (Join-Path $SharedRoot 'Config.psm1')
+    (Join-Path $SharedRoot 'Config.psm1'),
+    (Join-Path $SharedRoot 'Cache.psm1')
 )
 
 foreach ($module in $sharedModules) {
@@ -33,8 +34,9 @@ function Show-SportMenu {
     Write-Host '[1] Check project structure'
     Write-Host '[2] Check module status'
     Write-Host '[3] Run V0.1 test'
-    Write-Host '[4] Show latest log'
-    Write-Host '[5] Publish log to GitHub'
+    Write-Host '[4] Run V0.2.1 Catalog test'
+    Write-Host '[5] Show latest log'
+    Write-Host '[6] Publish log to GitHub'
     Write-Host '[0] Exit'
     Write-Host ''
 }
@@ -50,6 +52,20 @@ function Invoke-V01 {
     } else {
         Write-Host 'Test-V01Catalog is not exported by the V0.1 module.' -ForegroundColor Yellow
     }
+}
+
+function Invoke-V02 {
+    $module = Join-Path $ModulesRoot 'V02.Catalog/V02.Catalog.psm1'
+    if (-not (Import-SportModule -Path $module)) {
+        Write-Host 'V0.2.1 Catalog module is not installed yet.' -ForegroundColor Yellow
+        return
+    }
+
+    $result = Test-V02Catalog
+    Write-Host "Version: $($result.Version)"
+    Write-Host "Status : $($result.Status)"
+    Write-Host $result.Message
+    $result.Checks | Format-List
 }
 
 function Show-Status {
@@ -87,11 +103,15 @@ while ($true) {
             Read-Host 'Press Enter'
         }
         '4' {
+            Invoke-V02
+            Read-Host 'Press Enter'
+        }
+        '5' {
             $latest = Join-Path $ProjectRoot 'Logs/log.txt'
             if (Test-Path $latest) { Get-Content $latest -Tail 60 } else { Write-Host 'No log file yet.' -ForegroundColor Yellow }
             Read-Host 'Press Enter'
         }
-        '5' {
+        '6' {
             if (Get-Command Publish-SportLog -ErrorAction SilentlyContinue) {
                 Publish-SportLog -RepoRoot $ProjectRoot
             } else {
