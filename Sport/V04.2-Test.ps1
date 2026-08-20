@@ -42,8 +42,10 @@ try {
     $health = Test-Endpoint -Name 'Health' -Url "$base/health"
     $manifest = Test-Endpoint -Name 'Manifest' -Url "$base/manifest.json"
     $catalog = Test-Endpoint -Name 'Catalog' -Url "$base/catalog/tv/vietnam-sports.json"
-    $meta = Test-Endpoint -Name 'Meta' -Url "$base/meta/tv/sports%3Aevent%3A2397275.json"
-    $stream = Test-Endpoint -Name 'Stream' -Url "$base/stream/tv/sports%3Aevent%3A2397275.json"
+    # Use the Stremio event ID exactly as declared by the catalog.
+    # Both encoded and unencoded ':' forms are accepted by the server.
+    $meta = Test-Endpoint -Name 'Meta' -Url "$base/meta/tv/sports:event:2397275.json"
+    $stream = Test-Endpoint -Name 'Stream' -Url "$base/stream/tv/sports:event:2397275.json"
 
     $manifestValid = $manifest.Pass -and
         $manifest.Json.id -eq 'org.vietnam.sports.hub' -and
@@ -72,6 +74,9 @@ try {
     if (-not $allPass) {
         foreach ($r in @($health, $manifest, $catalog, $meta, $stream)) {
             if (-not $r.Pass) { Write-Host "Error $($r.Name): $($r.Error)" -ForegroundColor Red }
+        }
+        if ($meta.Pass -and -not $metaValid) {
+            Write-Host "Meta payload ID: $($meta.Json.meta.id)" -ForegroundColor Yellow
         }
     }
 }
