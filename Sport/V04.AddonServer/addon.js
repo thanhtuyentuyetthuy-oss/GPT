@@ -4,11 +4,11 @@ const path = require('path');
 
 const HOST = process.env.ADDON_HOST || '0.0.0.0';
 const PORT = Number(process.env.ADDON_PORT || 7000);
-const ROOT = path.resolve(__dirname, '..');
-const PROJECT_DATA_ROOT = path.resolve(__dirname, '..', '..', 'Data');
-const MANIFEST_PATH = path.join(ROOT, 'TestFixtures', 'V04.1.Manifest.json');
-const SOURCE_FIXTURE_PATH = path.join(ROOT, 'TestFixtures', 'V04.0.PublicSourceFixtures.json');
-const CACHE_ROOT = path.join(PROJECT_DATA_ROOT, 'Cache', 'V02.Catalog');
+const SPORT_ROOT = path.resolve(__dirname, '..');
+const REPO_ROOT = path.resolve(SPORT_ROOT, '..');
+const MANIFEST_PATH = path.join(SPORT_ROOT, 'TestFixtures', 'V04.1.Manifest.json');
+const SOURCE_FIXTURE_PATH = path.join(SPORT_ROOT, 'TestFixtures', 'V04.0.PublicSourceFixtures.json');
+const CACHE_ROOT = path.join(REPO_ROOT, 'Data', 'Cache', 'V02.Catalog');
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -75,14 +75,7 @@ function buildCatalogFromCache(cachePath) {
     };
   });
 
-  return {
-    payload: {
-      metas,
-      cacheMaxAge: 60
-    },
-    sourceItems,
-    cachePath
-  };
+  return { metas, cacheMaxAge: 60 };
 }
 
 function buildLegacyMeta(id) {
@@ -93,11 +86,7 @@ function buildLegacyMeta(id) {
       name: 'Vietnam Sports Hub Test Event',
       description: 'V0.4.2 integration test metadata.',
       videos: [
-        {
-          id,
-          title: 'Live event',
-          released: new Date().toISOString()
-        }
+        { id, title: 'Live event', released: new Date().toISOString() }
       ]
     }
   };
@@ -108,9 +97,7 @@ function buildStreams(id) {
     name: `Public fixture ${index + 1} - ${item.scope}`,
     title: item.name,
     url: item.url,
-    behaviorHints: {
-      bingeGroup: 'v04-fixture-test'
-    }
+    behaviorHints: { bingeGroup: 'v04-fixture-test' }
   }));
 
   return {
@@ -143,8 +130,7 @@ const server = http.createServer((req, res) => {
         sendJson(res, 503, { error: 'V0.2.1 catalog cache not found.' });
         return;
       }
-      const catalog = buildCatalogFromCache(cachePath);
-      sendJson(res, 200, catalog.payload);
+      sendJson(res, 200, buildCatalogFromCache(cachePath));
       return;
     }
 
@@ -166,8 +152,7 @@ const server = http.createServer((req, res) => {
         version: '0.4.3',
         status: 'OK',
         manifest: '/manifest.json',
-        catalogSource: 'V0.2.1 DAILY CACHE',
-        cacheRoot: CACHE_ROOT
+        catalogSource: 'V0.2.1 DAILY CACHE'
       });
       return;
     }
@@ -182,6 +167,7 @@ server.listen(PORT, HOST, () => {
   console.log(`Vietnam Sports Hub v0.4.3 listening on http://${HOST}:${PORT}`);
   console.log(`Manifest: http://127.0.0.1:${PORT}/manifest.json`);
   console.log(`Catalog : http://127.0.0.1:${PORT}/catalog/tv/vietnam-sports.json`);
+  console.log(`Catalog cache root: ${CACHE_ROOT}`);
   console.log(`Meta    : http://127.0.0.1:${PORT}/meta/tv/sports:event:2397275.json`);
   console.log(`Stream  : http://127.0.0.1:${PORT}/stream/tv/sports:event:2397275.json`);
   console.log('Catalog : V0.2.1 daily cache only; no source API request from addon server');
