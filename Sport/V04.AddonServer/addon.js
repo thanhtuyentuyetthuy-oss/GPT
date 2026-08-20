@@ -90,15 +90,17 @@ function buildStreams(id) {
 }
 
 const server = http.createServer((req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = url.pathname.replace(/\/$/, '') || '/';
-
-  if (req.method !== 'GET') {
-    sendText(res, 405, 'Method Not Allowed');
-    return;
-  }
-
   try {
+    const requestUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    // Normalize percent-encoded event IDs before route matching so both
+    // sports%3Aevent%3A2397275 and sports:event:2397275 work identically.
+    const pathname = decodeURIComponent(requestUrl.pathname).replace(/\/$/, '') || '/';
+
+    if (req.method !== 'GET') {
+      sendText(res, 405, 'Method Not Allowed');
+      return;
+    }
+
     if (pathname === '/manifest.json') {
       sendJson(res, 200, manifest);
       return;
@@ -111,13 +113,13 @@ const server = http.createServer((req, res) => {
 
     const metaMatch = pathname.match(/^\/meta\/tv\/([^/]+)(?:\.json)?$/);
     if (metaMatch) {
-      sendJson(res, 200, buildMeta(decodeURIComponent(metaMatch[1])));
+      sendJson(res, 200, buildMeta(metaMatch[1]));
       return;
     }
 
     const streamMatch = pathname.match(/^\/stream\/tv\/([^/]+)(?:\.json)?$/);
     if (streamMatch) {
-      sendJson(res, 200, buildStreams(decodeURIComponent(streamMatch[1])));
+      sendJson(res, 200, buildStreams(streamMatch[1]));
       return;
     }
 
@@ -141,7 +143,7 @@ server.listen(PORT, HOST, () => {
   console.log(`Vietnam Sports Hub v0.4.2 listening on http://${HOST}:${PORT}`);
   console.log(`Manifest: http://127.0.0.1:${PORT}/manifest.json`);
   console.log(`Catalog : http://127.0.0.1:${PORT}/catalog/tv/vietnam-sports.json`);
-  console.log(`Meta    : http://127.0.0.1:${PORT}/meta/tv/sports%3Aevent%3A2397275.json`);
-  console.log(`Stream  : http://127.0.0.1:${PORT}/stream/tv/sports%3Aevent%3A2397275.json`);
+  console.log(`Meta    : http://127.0.0.1:${PORT}/meta/tv/sports:event:2397275.json`);
+  console.log(`Stream  : http://127.0.0.1:${PORT}/stream/tv/sports:event:2397275.json`);
   console.log('Policy  : public fixture references only; no extraction/bypass/protected resolution');
 });
