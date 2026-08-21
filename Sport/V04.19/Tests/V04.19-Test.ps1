@@ -1,11 +1,11 @@
-$ErrorActionPreference = 'Stop'
-
 [CmdletBinding()]
 param(
     [switch]$KeepServer,
     [int]$Port = 7019,
     [int]$StartupTimeoutSeconds = 10
 )
+
+$ErrorActionPreference = 'Stop'
 
 Write-Host '==============================================='
 Write-Host '       VIETNAM SPORTS HUB - V0.4.19'
