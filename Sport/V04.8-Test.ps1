@@ -42,13 +42,18 @@ try {
     $metaIdValid = $null -ne $meta.meta -and $meta.meta.id -eq $expectedMetaId -and $meta.meta.type -eq 'tv'
     $metaNameValid = $null -ne $meta.meta -and -not [string]::IsNullOrWhiteSpace([string]$meta.meta.name)
 
-    # Read the JSON property explicitly. This avoids Windows PowerShell 5.1
-    # property/enumeration quirks when the response contains a property named
-    # "streams".
-    $streamProperty = $stream.PSObject.Properties['streams']
-    $streamValues = if ($null -ne $streamProperty -and $null -ne $streamProperty.Value) { @($streamProperty.Value) } else { @() }
-    $streamCount = $streamValues.Count
-    $streamUrl = if ($streamCount -gt 0 -and $null -ne $streamValues[0].url) { [string]$streamValues[0].url } else { '' }
+    # Windows PowerShell 5.1 can expose a JSON array property as a scalar
+    # PSCustomObject. Enumerate the property value through the pipeline and
+    # use Measure-Object for a reliable count in all 5.1 cases.
+    $streamProperty = $stream.PSObject.Properties | Where-Object { $_.Name -eq 'streams' } | Select-Object -First 1
+    $streamValues = @()
+    if ($null -ne $streamProperty -and $null -ne $streamProperty.Value) {
+        $streamValues = @($streamProperty.Value | ForEach-Object { $_ })
+    }
+    $streamCount = @($streamValues | Measure-Object).Count
+    $streamItem = if ($streamCount -gt 0) { @($streamValues | Select-Object -First 1)[0] } else { $null }
+    $streamUrl = if ($null -ne $streamItem -and $null -ne $streamItem.url) { [string]$streamItem.url } else { '' }
+
     $streamUri = $null
     $streamHostValid = $false
     if ($streamUrl) {
@@ -59,7 +64,7 @@ try {
         catch { $streamHostValid = $false }
     }
 
-    $streamMetaProperty = $stream.PSObject.Properties['meta']
+    $streamMetaProperty = $stream.PSObject.Properties | Where-Object { $_.Name -eq 'meta' } | Select-Object -First 1
     $streamMeta = if ($null -ne $streamMetaProperty) { $streamMetaProperty.Value } else { $null }
     $streamPolicyValid = $null -ne $streamMeta -and [string]$streamMeta.sourcePolicy -eq 'AUTHORIZED-ONLY'
     $streamValid = $streamCount -eq 1 -and $streamHostValid -and $streamPolicyValid
