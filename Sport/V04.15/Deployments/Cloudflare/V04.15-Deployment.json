@@ -1,0 +1,12 @@
+{
+  "version": "0.4.15",
+  "provider": "Cloudflare Workers",
+  "mode": "GATED-AUTO-DEPLOY",
+  "autoDeployOnPass": true,
+  "dryRunBeforeDeploy": false,
+  "workerRelativePath": "./Worker",
+  "deploymentScript": "./Deploy-V04.15-Cloudflare.ps1",
+  "sourceMode": "V04.15-COMPATIBILITY-WORKER",
+  "stopOnFailure": true,
+  "previousVersionsFrozen": true
+}
