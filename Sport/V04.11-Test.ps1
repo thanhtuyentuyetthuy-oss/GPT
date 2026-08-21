@@ -91,8 +91,19 @@ try {
     $metaType = if ($null -ne $metaObject) { [string](Get-PropertyValue $metaObject 'type') } else { '' }
     $checks['Meta Continuity'] = ($null -ne $metaObject) -and $metaId -eq $eventKey -and $metaType -eq 'tv'
 
-    $streamItems = Get-ArrayItems (Get-PropertyValue $stream 'streams')
-    $streamItem = if ($streamItems.Count -gt 0) { @($streamItems | Select-Object -First 1)[0] } else { $null }
+    # Robust PowerShell 5.1 Stream parsing. Read the streams property explicitly,
+    # normalize it to an array, and count the normalized items.
+    $streamProperty = $stream.PSObject.Properties | Where-Object { $_.Name -eq 'streams' } | Select-Object -First 1
+    $streamValues = @()
+    if ($null -ne $streamProperty -and $null -ne $streamProperty.Value) {
+        $streamValues = @($streamProperty.Value | ForEach-Object { $_ })
+    }
+    $streamCount = @($streamValues | Measure-Object).Count
+    $streamItem = $null
+    if ($streamCount -gt 0) {
+        $streamItem = @($streamValues | Select-Object -First 1)[0]
+    }
+
     $streamUrl = if ($null -ne $streamItem) { [string](Get-PropertyValue $streamItem 'url') } else { '' }
     $streamMeta = Get-PropertyValue $stream 'meta'
     $streamPolicy = if ($null -ne $streamMeta) { [string](Get-PropertyValue $streamMeta 'sourcePolicy') } else { '' }
@@ -104,7 +115,7 @@ try {
             $streamHostOk = $approvedHosts -contains $streamHost.ToLowerInvariant()
         } catch { $streamHostOk = $false }
     }
-    $checks['Authorized Stream'] = $streamItems.Count -eq 1 -and $streamHostOk -and $streamPolicy -eq 'AUTHORIZED-ONLY'
+    $checks['Authorized Stream'] = $streamCount -eq 1 -and $streamHostOk -and $streamPolicy -eq 'AUTHORIZED-ONLY'
 
     $allPassed = $true
     foreach ($Key in $checks.Keys) {
@@ -137,7 +148,7 @@ try {
     }
     elseif (-not $checks['Authorized Stream']) {
         $primaryFailure = 'AUTHORIZED_STREAM'
-        $failureReason = "StreamCount=$($streamItems.Count); Host=$streamHost; SourcePolicy=$streamPolicy."
+        $failureReason = "StreamCount=$streamCount; Host=$streamHost; SourcePolicy=$streamPolicy."
     }
 
     Write-Host ''
@@ -149,7 +160,7 @@ try {
     Write-Host "Failure Reason            : $(if ($failureReason) { $failureReason } else { 'All checks passed.' })"
     Write-Host "Previous Versions Frozen : True"
     Write-Host "Diagnostic Contract       : True"
-    Write-Host "Compatibility Adjustment : None"
+    Write-Host "Compatibility Adjustment : Test harness Stream parsing only"
     Write-Host "V0.4.10 Contract Preserved: True"
     Write-Host "Event ID                  : $eventId"
     Write-Host "Authorized Source Only    : $($checks['Authorized Stream'])"
@@ -169,9 +180,10 @@ try {
         Write-Host "  State Marker Rows        : $($stateRows.Count)"
         Write-Host "  Invalid State Rows       : $($invalidStateRows.Count)"
         Write-Host "  Meta Event ID            : $metaId"
-        Write-Host "  Stream Count             : $($streamItems.Count)"
+        Write-Host "  Stream Count             : $streamCount"
         Write-Host "  Stream Host              : $streamHost"
         Write-Host "  Stream Source Policy     : $streamPolicy"
+        Write-Host "  Stream Raw Diagnostic    : $($stream | ConvertTo-Json -Depth 10 -Compress)" -ForegroundColor Yellow
     }
 }
 catch {
