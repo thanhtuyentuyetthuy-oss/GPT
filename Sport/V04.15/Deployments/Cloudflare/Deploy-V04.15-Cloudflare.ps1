@@ -1,10 +1,10 @@
-$ErrorActionPreference = 'Stop'
-
 [CmdletBinding()]
 param(
     [Parameter(Mandatory)][string]$WorkerRoot,
     [switch]$DryRun
 )
+
+$ErrorActionPreference = 'Stop'
 
 $resolvedWorkerRoot = [System.IO.Path]::GetFullPath($WorkerRoot)
 $wranglerConfig = Join-Path $resolvedWorkerRoot 'wrangler.jsonc'
