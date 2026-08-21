@@ -1,0 +1,20 @@
+{
+  "version": "0.4.15",
+  "architecture": "MODULAR-STAGE-DEPLOYMENT",
+  "previousContractsFrozen": true,
+  "stages": [
+    {"name":"CATALOG","owner":"Adapters/Catalog","streamResolution":"DEFERRED"},
+    {"name":"STATE","owner":"Core/State"},
+    {"name":"META","owner":"Adapters/Meta","requires":"USER_SELECTION"},
+    {"name":"STREAM","owner":"Adapters/Stream","requires":"PLAYBACK_REQUEST","sourcePolicy":"AUTHORIZED-ONLY"},
+    {"name":"RUNTIME","owner":"Core/Runtime","responsibilities":["connection-mode","polling-decision","request-budget","exit-stop"]},
+    {"name":"DEPLOYMENT","owner":"Deployments/Cloudflare","responsibilities":["edge-endpoint","manifest","health"]}
+  ],
+  "diagnostics": {
+    "enabled": true,
+    "primaryFailure": true,
+    "cascadeAware": true
+  },
+  "evolutionRule": "NEW-VERSION-FIRST",
+  "compatibilityRule": "ADJUST-CONNECTIONS-ONLY-WHEN-NEEDED"
+}
