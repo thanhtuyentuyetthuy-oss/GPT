@@ -53,7 +53,6 @@ try {
     $pollConfig = Get-V035ActivePollingConfig
     $exitConfig = Get-V036ExitStopConfig
 
-    # V0.3 policy/runtime matrix. These checks are contract tests and do not alter the modules.
     $finishedPolling = Test-V035ActivePolling -LiveState FINISHED
     $notLivePolling = Test-V035ActivePolling -LiveState NOT_LIVE
     $unknownPolling = Test-V035ActivePolling -LiveState UNKNOWN
@@ -109,14 +108,18 @@ try {
     $checks['Catalog State Contract'] = $stateRows.Count -eq 3 -and (@($stateRows | Where-Object { -not $_.Valid }).Count -eq 0)
     $checks['Current State Resolution'] = ($liveRows.Count -ge 0) -and ($upcomingRows.Count -ge 0) -and ($finishedRows.Count -ge 0) -and (($liveRows.Count + $upcomingRows.Count + $finishedRows.Count) -eq 3)
 
-    # Runtime connection decision is derived from actual current Catalog state.
     $connectionMode = if ($liveRows.Count -gt 0) { 'ACTIVE-LIVE-POLL' } elseif ($upcomingRows.Count -gt 0) { 'CACHE-FIRST-UPCOMING' } else { 'CACHE-ONLY-FINISHED' }
     $currentPollingExpected = $liveRows.Count -gt 0
     $currentRequestBudget = if ($currentPollingExpected) { 1 } else { 0 }
 
+    # The runtime decision must be evaluated against the test state matching the resolved mode.
+    # PollingEnabled is a module capability, not the current permission to poll.
+    $currentPollingRuntime = if ($currentPollingExpected) { [bool]$livePolling.PollAllowed } else { [bool]$finishedPolling.PollAllowed }
+    $currentRuntimeRequests = if ($currentPollingExpected) { [int]$livePolling.PollRequests } else { [int]$finishedPolling.PollRequests }
+
     $checks['Runtime Connection Mode'] = $connectionMode -in @('ACTIVE-LIVE-POLL','CACHE-FIRST-UPCOMING','CACHE-ONLY-FINISHED')
-    $checks['Current Polling Decision'] = $currentPollingExpected -eq $livePolling.PollAllowed
-    $checks['Current Request Budget'] = $currentRequestBudget -eq $finishedPolling.PollRequests
+    $checks['Current Polling Decision'] = $currentPollingExpected -eq $currentPollingRuntime
+    $checks['Current Request Budget'] = $currentRequestBudget -eq $currentRuntimeRequests
     $checks['Finished Runtime Guard'] = $finishedRows.Count -gt 0 -and $finishedPolling.PollRequests -eq 0
 
     $metaObject = Get-PropertyValue $meta 'meta'
@@ -124,7 +127,6 @@ try {
     $metaType = if ($null -ne $metaObject) { [string](Get-PropertyValue $metaObject 'type') } else { '' }
     $checks['Meta Continuity'] = ($null -ne $metaObject) -and $metaId -eq $eventKey -and $metaType -eq 'tv'
 
-    # Robust PowerShell 5.1 stream parsing inherited from V0.4.11.
     $streamProperty = $stream.PSObject.Properties | Where-Object { $_.Name -eq 'streams' } | Select-Object -First 1
     $streamValues = @()
     if ($null -ne $streamProperty -and $null -ne $streamProperty.Value) {
@@ -188,11 +190,11 @@ try {
     }
     elseif (-not $checks['Current Polling Decision']) {
         $primaryFailure = 'CURRENT_POLLING_DECISION'
-        $failureReason = "Current state resolved $connectionMode but expected polling=$currentPollingExpected differs from runtime policy=$($livePolling.PollAllowed)."
+        $failureReason = "Current state resolved $connectionMode but expected polling=$currentPollingExpected differs from current runtime decision=$currentPollingRuntime."
     }
     elseif (-not $checks['Current Request Budget']) {
         $primaryFailure = 'CURRENT_REQUEST_BUDGET'
-        $failureReason = "Current mode $connectionMode allows $currentRequestBudget request(s), but finished runtime returned $($finishedPolling.PollRequests)."
+        $failureReason = "Current mode $connectionMode allows $currentRequestBudget request(s), but matching runtime state produced $currentRuntimeRequests."
     }
     elseif (-not $checks['Meta Continuity']) {
         $primaryFailure = 'META_CONTINUITY'
@@ -218,7 +220,9 @@ try {
     Write-Host "Upcoming Rows             : $($upcomingRows.Count)"
     Write-Host "Finished Rows             : $($finishedRows.Count)"
     Write-Host "Current Polling Expected  : $currentPollingExpected"
+    Write-Host "Current Runtime Decision  : $currentPollingRuntime"
     Write-Host "Current Request Budget    : $currentRequestBudget"
+    Write-Host "Current Runtime Requests  : $currentRuntimeRequests"
     Write-Host "Finished Runtime Polls    : $($finishedPolling.PollRequests)"
     Write-Host "LIVE Test Polls           : $($livePolling.PollRequests)"
     Write-Host "Exit Polling Stopped      : $($exitStatus.PollingStopped)"
@@ -237,7 +241,9 @@ try {
         Write-Host 'DIAGNOSTIC DETAIL' -ForegroundColor Yellow
         Write-Host "  Connection Mode          : $connectionMode"
         Write-Host "  Current Polling Expected : $currentPollingExpected"
+        Write-Host "  Current Runtime Decision : $currentPollingRuntime"
         Write-Host "  Current Request Budget   : $currentRequestBudget"
+        Write-Host "  Current Runtime Requests : $currentRuntimeRequests"
         Write-Host "  Finished Runtime Polls   : $($finishedPolling.PollRequests)"
         Write-Host "  LIVE Test Polls          : $($livePolling.PollRequests)"
         Write-Host "  NOT_LIVE Test Polls      : $($notLivePolling.PollRequests)"
