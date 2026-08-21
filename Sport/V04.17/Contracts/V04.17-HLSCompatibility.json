@@ -1,0 +1,22 @@
+{
+  "version": "0.4.17",
+  "name": "STREMIO-HLS-COMPATIBILITY",
+  "previousContractsFrozen": true,
+  "parentContract": "0.4.16",
+  "stream": {
+    "format": "HLS-M3U8",
+    "sourcePolicy": "AUTHORIZED-ONLY",
+    "behaviorHints": {
+      "notWebReady": true,
+      "bingeGroup": "v047-public-test"
+    }
+  },
+  "diagnostics": {
+    "enabled": true,
+    "primaryFailure": true
+  },
+  "deployment": {
+    "autoDeployOnPass": true,
+    "postDeployVerification": true
+  }
+}
