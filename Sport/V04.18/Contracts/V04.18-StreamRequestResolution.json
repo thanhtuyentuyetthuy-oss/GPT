@@ -1,0 +1,12 @@
+{
+  "version": "0.4.18",
+  "purpose": "STREAM-REQUEST-RESOLUTION-DIAGNOSTIC",
+  "previousContractsFrozen": true,
+  "probeAddonId": "org.vietnam.sports.hub.v0418probe",
+  "probePort": 7018,
+  "requiredRequests": ["manifest", "catalog", "meta"],
+  "diagnosticRequest": "stream",
+  "diagnosticFields": ["streamRequestSeen", "streamHandlerMatched", "streamResponseCount"],
+  "authorizedSourceOnly": true,
+  "testStreamHost": "test-streams.mux.dev"
+}
