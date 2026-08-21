@@ -18,9 +18,7 @@ $probePath = Join-Path $probeRoot 'addon.js'
 $baseUrl = "http://127.0.0.1:$Port"
 
 function Get-Json([string]$Url) { Invoke-RestMethod -Uri $Url -Method Get -TimeoutSec 10 }
-function Ready {
-    try { $null = Get-Json "$baseUrl/manifest.json"; return $true } catch { return $false }
-}
+function Ready { try { $null = Get-Json "$baseUrl/manifest.json"; return $true } catch { return $false } }
 function Check([string]$Name,[bool]$Passed) { Write-Host ('[{0}] {1}' -f $(if($Passed){'PASS'}else{'FAIL'}),$Name) }
 
 $proc = $null
@@ -56,7 +54,7 @@ try {
     $checks['MP4 Control Present'] = @($stream.streams | Where-Object { $_.url -match '\.mp4($|\?)' -and -not $_.behaviorHints.notWebReady }).Count -eq 1
     $checks['Mux HLS Present'] = @($stream.streams | Where-Object { $_.url -like '*test-streams.mux.dev*' -and $_.behaviorHints.notWebReady }).Count -eq 1
     $checks['Apple HLS Present'] = @($stream.streams | Where-Object { $_.url -like '*devstreaming-cdn.apple.com*' -and $_.behaviorHints.notWebReady }).Count -eq 1
-    $checks['Authorized Sources'] = (@($stream.streams | Where-Object { $_.url -notmatch '^https://(github\.com|test-streams\.mux\.dev|devstreaming-cdn\.apple\.com)/' }).Count -eq 0)
+    $checks['Authorized Sources'] = (@($stream.streams | Where-Object { $_.url -notmatch '^https://(download\.blender\.org|test-streams\.mux\.dev|devstreaming-cdn\.apple\.com)/' }).Count -eq 0)
 
     Write-Host ''
     foreach($k in $checks.Keys){ Check $k $checks[$k] }
