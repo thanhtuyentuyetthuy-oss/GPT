@@ -1,0 +1,21 @@
+{
+  "version": "0.4.20",
+  "title": "PLAYBACK COMPATIBILITY MATRIX",
+  "purpose": "Determine whether Stremio client filtering/playback differs between web-ready MP4 and notWebReady HLS streams.",
+  "previousVersionsFrozen": true,
+  "previousContract": "0.4.19",
+  "testRule": "COMPARE_PAYLOAD_CLASSES_ONLY",
+  "sources": [
+    { "id": "MP4", "role": "CONTROL", "notWebReady": false },
+    { "id": "MUX_HLS", "role": "COMPARISON", "notWebReady": true },
+    { "id": "APPLE_HLS", "role": "COMPARISON", "notWebReady": true }
+  ],
+  "diagnostics": {
+    "enabled": true,
+    "captureStreamRequests": true,
+    "captureResponseCount": true
+  },
+  "deployment": "LOCAL-ONLY",
+  "autoDeploy": false,
+  "integrationGate": "PASS_ONLY_AFTER_MATRIX_RESULT"
+}
