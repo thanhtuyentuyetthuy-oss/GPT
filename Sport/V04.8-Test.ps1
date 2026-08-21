@@ -42,9 +42,13 @@ try {
     $metaIdValid = $null -ne $meta.meta -and $meta.meta.id -eq $expectedMetaId -and $meta.meta.type -eq 'tv'
     $metaNameValid = $null -ne $meta.meta -and -not [string]::IsNullOrWhiteSpace([string]$meta.meta.name)
 
-    $streams = if ($null -ne $stream.streams) { @($stream.streams) } else { @() }
-    $streamCount = $streams.Count
-    $streamUrl = if ($streamCount -gt 0 -and $null -ne $streams[0].url) { [string]$streams[0].url } else { '' }
+    # Read the JSON property explicitly. This avoids Windows PowerShell 5.1
+    # property/enumeration quirks when the response contains a property named
+    # "streams".
+    $streamProperty = $stream.PSObject.Properties['streams']
+    $streamValues = if ($null -ne $streamProperty -and $null -ne $streamProperty.Value) { @($streamProperty.Value) } else { @() }
+    $streamCount = $streamValues.Count
+    $streamUrl = if ($streamCount -gt 0 -and $null -ne $streamValues[0].url) { [string]$streamValues[0].url } else { '' }
     $streamUri = $null
     $streamHostValid = $false
     if ($streamUrl) {
@@ -54,7 +58,10 @@ try {
         }
         catch { $streamHostValid = $false }
     }
-    $streamPolicyValid = $null -ne $stream.meta -and [string]$stream.meta.sourcePolicy -eq 'AUTHORIZED-ONLY'
+
+    $streamMetaProperty = $stream.PSObject.Properties['meta']
+    $streamMeta = if ($null -ne $streamMetaProperty) { $streamMetaProperty.Value } else { $null }
+    $streamPolicyValid = $null -ne $streamMeta -and [string]$streamMeta.sourcePolicy -eq 'AUTHORIZED-ONLY'
     $streamValid = $streamCount -eq 1 -and $streamHostValid -and $streamPolicyValid
 
     $healthValid = $health.status -eq 'OK' -and $health.version -eq '0.4.7' -and $health.sourcePolicy -eq 'AUTHORIZED-ONLY'
@@ -67,7 +74,7 @@ try {
     Write-Host "Health                  : $healthValid"
     Write-Host "Manifest                : $manifestValid"
     Write-Host "Catalog Endpoint        : True"
-    Write-Host "Catalog Count            : $catalogCount"
+    Write-Host "Catalog Count           : $catalogCount"
     Write-Host "Catalog Event ID        : $(if ($catalogEvent) { $catalogEvent.id } else { '' })"
     Write-Host "Catalog Event Valid     : $catalogEventValid"
     Write-Host "Meta Endpoint           : True"
