@@ -1,0 +1,28 @@
+{
+  "version": "0.4.16",
+  "architecture": "POST-DEPLOYMENT-VERIFICATION",
+  "previousContractsFrozen": true,
+  "inherits": "V0.4.15",
+  "deploymentPolicy": "VERIFY-AFTER-DEPLOY",
+  "target": {
+    "baseUrl": "https://vietnam-sports-hub.vnsports.workers.dev"
+  },
+  "checks": [
+    "CLOUDFLARE_REACHABLE",
+    "MANIFEST_VALID",
+    "HEALTH_VALID",
+    "CATALOG_VALID",
+    "META_VALID",
+    "STREAM_VALID",
+    "AUTHORIZED_SOURCE_ONLY",
+    "LOCALHOST_INDEPENDENT"
+  ],
+  "failurePolicy": "STOP-ON-VERIFY-FAIL",
+  "diagnostics": {
+    "enabled": true,
+    "primaryFailure": true,
+    "endpointAware": true
+  },
+  "evolutionRule": "NEW-VERSION-FIRST",
+  "compatibilityRule": "ADJUST-CONNECTIONS-ONLY-WHEN-NEEDED"
+}
