@@ -18,6 +18,19 @@ function Get-JsonResponse([string]$uri) {
     return ($response.Content | ConvertFrom-Json)
 }
 
+function Get-PropertyValue($object, [string]$name) {
+    if ($null -eq $object) { return $null }
+    $property = $object.PSObject.Properties | Where-Object { $_.Name -eq $name } | Select-Object -First 1
+    if ($null -eq $property) { return $null }
+    return $property.Value
+}
+
+function Get-JsonArrayProperty($object, [string]$name) {
+    $value = Get-PropertyValue $object $name
+    if ($null -eq $value) { return @() }
+    return @($value | ForEach-Object { $_ })
+}
+
 Write-Host '==============================================='
 Write-Host '       VIETNAM SPORTS HUB - V0.4.9'
 Write-Host '       CROSS-VERSION REGRESSION CHECK'
@@ -40,12 +53,10 @@ try {
     $cacheCatalogOk = $catalogFiles.Count -gt 0
     $cacheMetaOk = ([string]$metaCache.eventId -eq $eventId) -and ($null -ne $metaCache.event)
     $cacheStreamUrl = [string]$streamCache.sourceUrl
-    $streamUri = $null
     $cacheStreamHostOk = $false
     if ($cacheStreamUrl) {
         try {
-            $streamUri = [Uri]$cacheStreamUrl
-            $cacheStreamHostOk = $approvedHosts -contains $streamUri.Host.ToLowerInvariant()
+            $cacheStreamHostOk = $approvedHosts -contains ([Uri]$cacheStreamUrl).Host.ToLowerInvariant()
         }
         catch { $cacheStreamHostOk = $false }
     }
@@ -68,19 +79,27 @@ try {
     $meta = Get-JsonResponse "$baseUrl/meta/tv/sports:event:$eventId.json"
     $stream = Get-JsonResponse "$baseUrl/stream/tv/sports:event:$eventId.json"
 
-    $catalogItems = if ($null -ne $catalog.metas) { @($catalog.metas) } else { @() }
-    $streams = if ($null -ne $stream.streams) { @($stream.streams) } else { @() }
-    $streamUrl = if ($streams.Count -gt 0) { [string]$streams[0].url } else { '' }
+    # Read array properties explicitly to avoid Windows PowerShell 5.1
+    # enumeration quirks seen previously in V0.4.8.
+    $catalogItems = Get-JsonArrayProperty $catalog 'metas'
+    $streams = Get-JsonArrayProperty $stream 'streams'
+
+    $streamUrl = if ($streams.Count -gt 0 -and $null -ne $streams[0].url) { [string]$streams[0].url } else { '' }
     $runtimeStreamHostOk = $false
     if ($streamUrl) {
-        try { $runtimeStreamHostOk = $approvedHosts -contains ([Uri]$streamUrl).Host.ToLowerInvariant() } catch { $runtimeStreamHostOk = $false }
+        try { $runtimeStreamHostOk = $approvedHosts -contains ([Uri]$streamUrl).Host.ToLowerInvariant() }
+        catch { $runtimeStreamHostOk = $false }
     }
 
-    $manifestOk = $manifest.id -eq 'org.vietnam.sports.hub' -and $manifest.resources -contains 'catalog' -and $manifest.resources -contains 'meta' -and $manifest.resources -contains 'stream'
+    $streamMeta = Get-PropertyValue $stream 'meta'
+    $sourcePolicy = if ($null -ne $streamMeta) { [string]$streamMeta.sourcePolicy } else { '' }
+
+    $manifestResources = Get-JsonArrayProperty $manifest 'resources'
+    $manifestOk = $manifest.id -eq 'org.vietnam.sports.hub' -and $manifestResources -contains 'catalog' -and $manifestResources -contains 'meta' -and $manifestResources -contains 'stream'
     $healthOk = $health.status -eq 'OK' -and $health.sourcePolicy -eq 'AUTHORIZED-ONLY'
-    $catalogOk = $catalogItems.Count -eq 3 -and ($catalogItems | Where-Object { $_.id -eq "sports:event:$eventId" }).Count -eq 1
+    $catalogOk = $catalogItems.Count -eq 3 -and @($catalogItems | Where-Object { $_.id -eq "sports:event:$eventId" }).Count -eq 1
     $metaOk = $null -ne $meta.meta -and $meta.meta.id -eq "sports:event:$eventId" -and $meta.meta.type -eq 'tv'
-    $runtimeStreamOk = $streams.Count -eq 1 -and $runtimeStreamHostOk -and [string]$stream.meta.sourcePolicy -eq 'AUTHORIZED-ONLY'
+    $runtimeStreamOk = $streams.Count -eq 1 -and $runtimeStreamHostOk -and $sourcePolicy -eq 'AUTHORIZED-ONLY'
 
     $overallPass = $cacheCatalogOk -and $cacheMetaOk -and $cacheStreamOk -and $v03Continuity -and $manifestOk -and $healthOk -and $catalogOk -and $metaOk -and $runtimeStreamOk
 
@@ -100,9 +119,12 @@ try {
     Write-Host "V0.4 Meta                 : $metaOk"
     Write-Host "V0.4 Stream               : $runtimeStreamOk"
     Write-Host "Runtime Stream Host       : $(if ($streamUrl) { ([Uri]$streamUrl).Host } else { '' })"
-    Write-Host "Authorized Source Only    : $([string]$stream.meta.sourcePolicy -eq 'AUTHORIZED-ONLY')"
+    Write-Host "Authorized Source Only    : $($sourcePolicy -eq 'AUTHORIZED-ONLY')"
     Write-Host "Event ID                  : $eventId"
     Write-Host "Cross-Version Integration : $overallPass"
+    if (-not $overallPass) {
+        Write-Host "V0.4 Diagnostic           : CatalogCount=$($catalogItems.Count); StreamCount=$($streams.Count); StreamHost=$([string]$(if ($streamUrl) { ([Uri]$streamUrl).Host } else { '' })); SourcePolicy=$sourcePolicy)" -ForegroundColor Yellow
+    }
 }
 catch {
     Write-Host 'Version                   : 0.4.9'
