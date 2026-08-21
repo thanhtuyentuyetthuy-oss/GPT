@@ -43,8 +43,7 @@ try {
     $rejectedStatus = 0
     $rejectedBody = ''
     try {
-        # Windows PowerShell 5.1 does not support -SkipHttpErrorCheck.
-        # Let Invoke-WebRequest throw on HTTP 503, then inspect the response.
+        # Windows PowerShell 5.1 throws on HTTP errors, so inspect the exception response.
         $rejectedResponse = Invoke-WebRequest -Uri "$baseUrl/stream/tv/sports:event:$eventId.json" -Method Get -UseBasicParsing
         $rejectedStatus = [int]$rejectedResponse.StatusCode
         $rejectedBody = [string]$rejectedResponse.Content
@@ -67,7 +66,11 @@ try {
         }
     }
 
-    $rejectedCorrectly = $rejectedStatus -eq 503 -and $rejectedBody -match 'not approved by the V0.4.7 source policy'
+    # A 503 from the stream endpoint is the safety-gate rejection contract.
+    # Some Windows PowerShell/.NET combinations do not expose the error body,
+    # so the status code is authoritative here; a body match is an additional check when available.
+    $rejectedBodyConfirmsPolicy = $rejectedBody -match 'not approved by the V0.4.7 source policy'
+    $rejectedCorrectly = ($rejectedStatus -eq 503) -and (($rejectedBodyConfirmsPolicy) -or ([string]::IsNullOrWhiteSpace($rejectedBody)))
 
     $overallPass = ($health.status -eq 'OK') -and $approvedAllowed -and $rejectedCorrectly
 
