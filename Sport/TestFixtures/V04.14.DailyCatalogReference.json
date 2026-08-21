@@ -1,0 +1,19 @@
+{
+  "version": "0.4.14",
+  "sourceRole": "CATALOG-ONLY",
+  "referenceSource": "LiveScore",
+  "mode": "DAILY-CATALOG-REFERENCE",
+  "upstreamRequests": 0,
+  "streamResolution": "DEFERRED",
+  "notes": "Reference fixture for daily catalog normalization. This is not a direct LiveScore API integration.",
+  "fixtures": [
+    {
+      "eventId": "AR-COV-20260821",
+      "status": "SCHEDULED",
+      "kickoffUtc": "2026-08-21T19:00:00Z",
+      "homeTeam": "Arsenal",
+      "awayTeam": "Coventry City",
+      "competition": "Premier League"
+    }
+  ]
+}
