@@ -8,6 +8,11 @@ $expectedMetaId = "sports:event:$eventId"
 $expectedCatalogId = "sports:event:$eventId"
 $approvedHosts = @('test-streams.mux.dev','stream.mux.com')
 
+function Get-JsonResponse([string]$uri) {
+    $response = Invoke-WebRequest -Uri $uri -Method Get -UseBasicParsing
+    return ($response.Content | ConvertFrom-Json)
+}
+
 Write-Host '==============================================='
 Write-Host '       VIETNAM SPORTS HUB - V0.4.8'
 Write-Host '       STREMIO END-TO-END VERIFICATION'
@@ -18,18 +23,18 @@ try {
     $process = Start-Process -FilePath 'node' -ArgumentList @($addonPath) -WorkingDirectory $serverRoot -PassThru -WindowStyle Hidden
     Start-Sleep -Milliseconds 800
 
-    $manifest = Invoke-RestMethod -Uri "$baseUrl/manifest.json" -Method Get
-    $health = Invoke-RestMethod -Uri "$baseUrl/health" -Method Get
-    $catalog = Invoke-RestMethod -Uri "$baseUrl/catalog/tv/vietnam-sports.json" -Method Get
-    $meta = Invoke-RestMethod -Uri "$baseUrl/meta/tv/$expectedMetaId.json" -Method Get
-    $stream = Invoke-RestMethod -Uri "$baseUrl/stream/tv/$expectedMetaId.json" -Method Get
+    $manifest = Get-JsonResponse "$baseUrl/manifest.json"
+    $health = Get-JsonResponse "$baseUrl/health"
+    $catalog = Get-JsonResponse "$baseUrl/catalog/tv/vietnam-sports.json"
+    $meta = Get-JsonResponse "$baseUrl/meta/tv/$expectedMetaId.json"
+    $stream = Get-JsonResponse "$baseUrl/stream/tv/$expectedMetaId.json"
 
     $resourcesValid = @('catalog','meta','stream') | ForEach-Object { $manifest.resources -contains $_ } | Where-Object { -not $_ } | Measure-Object | Select-Object -ExpandProperty Count
     $typesValid = $manifest.types -contains 'tv'
     $prefixValid = $manifest.idPrefixes -contains 'sports:event:'
     $catalogValid = $manifest.catalogs | Where-Object { $_.type -eq 'tv' -and $_.id -eq 'vietnam-sports' } | Measure-Object | Select-Object -ExpandProperty Count
 
-    $catalogItems = if ($catalog.metas) { @($catalog.metas) } else { @() }
+    $catalogItems = if ($null -ne $catalog.metas) { @($catalog.metas) } else { @() }
     $catalogCount = $catalogItems.Count
     $catalogEvent = $catalogItems | Where-Object { $_.id -eq $expectedCatalogId } | Select-Object -First 1
     $catalogEventValid = $null -ne $catalogEvent
@@ -37,9 +42,9 @@ try {
     $metaIdValid = $null -ne $meta.meta -and $meta.meta.id -eq $expectedMetaId -and $meta.meta.type -eq 'tv'
     $metaNameValid = $null -ne $meta.meta -and -not [string]::IsNullOrWhiteSpace([string]$meta.meta.name)
 
-    $streams = if ($stream.streams) { @($stream.streams) } else { @() }
+    $streams = if ($null -ne $stream.streams) { @($stream.streams) } else { @() }
     $streamCount = $streams.Count
-    $streamUrl = if ($streamCount -gt 0) { [string]$streams[0].url } else { '' }
+    $streamUrl = if ($streamCount -gt 0 -and $null -ne $streams[0].url) { [string]$streams[0].url } else { '' }
     $streamUri = $null
     $streamHostValid = $false
     if ($streamUrl) {
@@ -49,7 +54,7 @@ try {
         }
         catch { $streamHostValid = $false }
     }
-    $streamPolicyValid = $stream.meta.sourcePolicy -eq 'AUTHORIZED-ONLY'
+    $streamPolicyValid = $null -ne $stream.meta -and [string]$stream.meta.sourcePolicy -eq 'AUTHORIZED-ONLY'
     $streamValid = $streamCount -eq 1 -and $streamHostValid -and $streamPolicyValid
 
     $healthValid = $health.status -eq 'OK' -and $health.version -eq '0.4.7' -and $health.sourcePolicy -eq 'AUTHORIZED-ONLY'
@@ -70,10 +75,13 @@ try {
     Write-Host "Meta Valid              : $($metaIdValid -and $metaNameValid)"
     Write-Host "Stream Endpoint         : True"
     Write-Host "Stream Count            : $streamCount"
-    Write-Host "Stream Host             : $($streamUri.Host)"
+    Write-Host "Stream Host             : $(if ($streamUri) { $streamUri.Host } else { '' })"
     Write-Host "Authorized Source Only  : $streamPolicyValid"
     Write-Host "Stream Valid            : $streamValid"
     Write-Host "Integration Complete    : $overallPass"
+    if (-not $streamValid) {
+        Write-Host "Stream Diagnostic       : $($stream | ConvertTo-Json -Depth 10 -Compress)" -ForegroundColor Yellow
+    }
     Write-Host "Base URL                : $baseUrl"
     Write-Host "Manifest URL            : $baseUrl/manifest.json"
 }
