@@ -46,10 +46,6 @@ function send(res, req, data, status = 200) {
   res.end(JSON.stringify(data));
 }
 
-function sourceFor(mode) {
-  return mode === 'apple' ? APPLE_URL : MUX_URL;
-}
-
 function hostFor(url) {
   return new URL(url).hostname.toLowerCase();
 }
@@ -94,27 +90,35 @@ function meta() {
   };
 }
 
-function streamPayload(mode) {
-  const url = sourceFor(mode);
+function buildStream(name, title, url, bingeGroup) {
   const host = hostFor(url);
   if (!ALLOWED_HOSTS.has(host)) throw new Error(`Source host not allowlisted: ${host}`);
   return {
-    streams: [{
-      name: mode === 'apple' ? 'Apple HLS comparison source' : 'Mux HLS control source',
-      title: mode === 'apple' ? 'Apple Bip Bop HLS test stream' : 'Mux HLS test stream',
-      url,
-      behaviorHints: {
-        notWebReady: true,
-        bingeGroup: `v0419-${mode}`,
-        filename: 'bipbop_4x3_variant.m3u8'
-      }
-    }],
+    name,
+    title,
+    url,
+    behaviorHints: {
+      notWebReady: true,
+      bingeGroup,
+      filename: url.includes('bipbop') ? 'bipbop_4x3_variant.m3u8' : 'x36xhzz.m3u8'
+    }
+  };
+}
+
+function streamPayload() {
+  const muxHost = hostFor(MUX_URL);
+  const appleHost = hostFor(APPLE_URL);
+  return {
+    streams: [
+      buildStream('Mux HLS control source', 'Mux HLS test stream', MUX_URL, 'v0419-mux'),
+      buildStream('Apple HLS comparison source', 'Apple Bip Bop HLS test stream', APPLE_URL, 'v0419-apple')
+    ],
     cacheMaxAge: 120,
     meta: {
       id: EVENT_KEY,
       sourcePolicy: 'AUTHORIZED-ONLY',
-      sourceHost: host,
-      comparisonMode: mode
+      sourceHosts: [muxHost, appleHost],
+      comparisonMode: 'MUX-VS-APPLE'
     }
   };
 }
@@ -127,34 +131,33 @@ function handle(req, res) {
   if (req.method !== 'GET') return send(res, req, { error: 'Method Not Allowed' }, 405);
 
   const url = new URL(req.url, `http://${req.headers.host}`);
-  const path = decodeURIComponent(url.pathname.replace(/\/$/, '') || '/');
+  const p = decodeURIComponent(url.pathname.replace(/\/$/, '') || '/');
 
-  if (path === '/manifest.json') {
+  if (p === '/manifest.json') {
     state.manifestRequests += 1;
     return send(res, req, manifest());
   }
-  if (path === '/catalog/tv/v0419-probe.json' || path === '/catalog/tv/v0419-probe') {
+  if (p === '/catalog/tv/v0419-probe.json' || p === '/catalog/tv/v0419-probe') {
     state.catalogRequests += 1;
     return send(res, req, catalog());
   }
-  if (path.startsWith('/meta/tv/')) {
+  if (p.startsWith('/meta/tv/')) {
     state.metaRequests += 1;
     return send(res, req, meta());
   }
-  if (path.startsWith('/stream/tv/')) {
+  if (p.startsWith('/stream/tv/')) {
     state.streamRequests += 1;
-    const mode = url.searchParams.get('source') === 'apple' ? 'apple' : 'mux';
-    if (mode === 'apple') state.appleStreamRequests += 1;
-    else state.muxStreamRequests += 1;
+    state.muxStreamRequests += 1;
+    state.appleStreamRequests += 1;
     state.streamHandlerMatched = true;
     state.streamResponseCount += 1;
     try {
-      return send(res, req, streamPayload(mode));
+      return send(res, req, streamPayload());
     } catch (err) {
       return send(res, req, { error: err.message }, 503);
     }
   }
-  if (path === '/diagnostic.json') {
+  if (p === '/diagnostic.json') {
     return send(res, req, {
       streamRequestSeen: state.streamRequests > 0,
       streamHandlerMatched: state.streamHandlerMatched,
@@ -173,7 +176,6 @@ function handle(req, res) {
 http.createServer(handle).listen(PORT, HOST, () => {
   console.log(`V0.4.19 HLS Source Differential Probe listening on http://${HOST}:${PORT}`);
   console.log(`Manifest: http://127.0.0.1:${PORT}/manifest.json`);
-  console.log(`Mux test: http://127.0.0.1:${PORT}/stream/tv/${EVENT_KEY}.json?source=mux`);
-  console.log(`Apple test: http://127.0.0.1:${PORT}/stream/tv/${EVENT_KEY}.json?source=apple`);
   console.log(`Diagnostic: http://127.0.0.1:${PORT}/diagnostic.json`);
+  console.log('Stream response now contains both Mux and Apple comparison sources.');
 });
