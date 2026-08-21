@@ -1,0 +1,27 @@
+{
+  "version": "0.4.19",
+  "name": "HLS Source Differential Probe",
+  "previousContractsFrozen": true,
+  "purpose": "Compare two public HLS sources through the same Stremio stream request path.",
+  "sources": [
+    {
+      "id": "MUX",
+      "host": "test-streams.mux.dev",
+      "role": "CONTROL"
+    },
+    {
+      "id": "APPLE",
+      "host": "devstreaming-cdn.apple.com",
+      "role": "COMPARISON"
+    }
+  ],
+  "streamPolicy": "AUTHORIZED-ONLY",
+  "notWebReady": true,
+  "diagnostics": {
+    "enabled": true,
+    "primaryFailure": true,
+    "requestResolution": true,
+    "sourceResolution": true
+  },
+  "testRule": "ONLY_CHANGE_STREAM_SOURCE"
+}
