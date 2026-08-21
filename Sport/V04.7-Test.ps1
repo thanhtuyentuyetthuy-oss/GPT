@@ -40,16 +40,31 @@ try {
     ($rejectedCache | ConvertTo-Json -Depth 10) | Set-Content -Path $streamCachePath -Encoding UTF8
     Start-Sleep -Milliseconds 150
 
-    $rejectedStatus = $null
-    $rejectedBody = $null
+    $rejectedStatus = 0
+    $rejectedBody = ''
     try {
-        $rejectedResponse = Invoke-WebRequest -Uri "$baseUrl/stream/tv/sports:event:$eventId.json" -Method Get -SkipHttpErrorCheck
+        # Windows PowerShell 5.1 does not support -SkipHttpErrorCheck.
+        # Let Invoke-WebRequest throw on HTTP 503, then inspect the response.
+        $rejectedResponse = Invoke-WebRequest -Uri "$baseUrl/stream/tv/sports:event:$eventId.json" -Method Get -UseBasicParsing
         $rejectedStatus = [int]$rejectedResponse.StatusCode
-        $rejectedBody = $rejectedResponse.Content
+        $rejectedBody = [string]$rejectedResponse.Content
     }
     catch {
-        $rejectedStatus = [int]$_.Exception.Response.StatusCode.value__
-        $rejectedBody = $_.ErrorDetails.Message
+        $response = $_.Exception.Response
+        if ($response -ne $null) {
+            $rejectedStatus = [int]$response.StatusCode
+            try {
+                $reader = New-Object System.IO.StreamReader($response.GetResponseStream())
+                $rejectedBody = $reader.ReadToEnd()
+                $reader.Dispose()
+            }
+            catch {
+                $rejectedBody = [string]$_.ErrorDetails.Message
+            }
+        }
+        else {
+            throw
+        }
     }
 
     $rejectedCorrectly = $rejectedStatus -eq 503 -and $rejectedBody -match 'not approved by the V0.4.7 source policy'
