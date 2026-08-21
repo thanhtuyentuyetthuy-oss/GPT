@@ -48,7 +48,6 @@ $primaryFailure = ''
 $failureReason = ''
 
 try {
-    # ----- Baseline continuity: previous PASS checkpoints are read-only. -----
     $catalogDir = Join-Path $cacheRoot 'V02.Catalog'
     $metaPath = Join-Path $cacheRoot "V02.Meta\event-$eventId.json"
     $streamPath = Join-Path $cacheRoot "V02.Stream\event-$eventId.json"
@@ -76,7 +75,6 @@ try {
     }
     $checks['Previous Stream Cache Authorized'] = $cacheHostOk
 
-    # ----- V0.4 live chain -----
     $process = Start-Process -FilePath 'node' -ArgumentList @($addonPath) -WorkingDirectory $serverRoot -PassThru -WindowStyle Hidden
     Start-Sleep -Milliseconds 800
 
@@ -99,9 +97,19 @@ try {
     $metaType = if ($null -ne $metaObject) { [string](Get-PropertyValue $metaObject 'type') } else { '' }
     $checks['V0.4 Meta'] = ($null -ne $metaObject) -and $metaId -eq $eventKey -and $metaType -eq 'tv'
 
-    $streamItems = Get-ArrayItems (Get-PropertyValue $stream 'streams')
-    $streamCount = $streamItems.Count
-    $streamItem = if ($streamCount -gt 0) { @($streamItems | Select-Object -First 1)[0] } else { $null }
+    # Robust PowerShell 5.1 handling: stream response is read as a JSON property,
+    # then normalized into an array before counting/indexing.
+    $streamProperty = $stream.PSObject.Properties | Where-Object { $_.Name -eq 'streams' } | Select-Object -First 1
+    $streamValues = @()
+    if ($null -ne $streamProperty -and $null -ne $streamProperty.Value) {
+        $streamValues = @($streamProperty.Value | ForEach-Object { $_ })
+    }
+    $streamCount = @($streamValues | Measure-Object).Count
+    $streamItem = $null
+    if ($streamCount -gt 0) {
+        $streamItem = @($streamValues | Select-Object -First 1)[0]
+    }
+
     $runtimeUrl = if ($null -ne $streamItem) { [string](Get-PropertyValue $streamItem 'url') } else { '' }
     $runtimeHost = ''
     $runtimeHostOk = $false
@@ -111,60 +119,47 @@ try {
             $runtimeHostOk = $approvedHosts -contains $runtimeHost.ToLowerInvariant()
         } catch { $runtimeHostOk = $false }
     }
+
     $streamMeta = Get-PropertyValue $stream 'meta'
     $streamPolicy = if ($null -ne $streamMeta) { [string](Get-PropertyValue $streamMeta 'sourcePolicy') } else { '' }
     $checks['V0.4 Stream'] = $streamCount -eq 1 -and $runtimeHostOk -and $streamPolicy -eq 'AUTHORIZED-ONLY'
 
-    # ----- Diagnostic Contract -----
     $allPassed = $true
     foreach ($Key in $checks.Keys) {
         if (-not $checks[$Key]) { $allPassed = $false; break }
     }
 
-    # Identify the primary failure without fabricating downstream failures.
     if (-not $checks['V0.2.1 Catalog Cache']) {
-        $primaryFailure = 'V0.2.1 Catalog Cache'
-        $failureReason = 'Catalog cache directory is unavailable.'
+        $primaryFailure = 'V0.2.1 Catalog Cache'; $failureReason = 'Catalog cache directory is unavailable.'
     }
     elseif (-not $checks['V0.2.3 Meta Cache']) {
-        $primaryFailure = 'V0.2.3 Meta Cache'
-        $failureReason = 'Selected-event Meta cache is unavailable.'
+        $primaryFailure = 'V0.2.3 Meta Cache'; $failureReason = 'Selected-event Meta cache is unavailable.'
     }
     elseif (-not $checks['V0.2.4 Stream Cache']) {
-        $primaryFailure = 'V0.2.4 Stream Cache'
-        $failureReason = 'Selected-event Stream cache is unavailable.'
+        $primaryFailure = 'V0.2.4 Stream Cache'; $failureReason = 'Selected-event Stream cache is unavailable.'
     }
     elseif (-not $checks['V0.3 Continuity']) {
-        $primaryFailure = 'V0.3 Continuity'
-        $failureReason = 'One or more live/session modules are missing.'
+        $primaryFailure = 'V0.3 Continuity'; $failureReason = 'One or more live/session modules are missing.'
     }
     elseif (-not $checks['Previous Stream Cache Authorized']) {
-        $primaryFailure = 'STREAM_SOURCE_AUTHORIZATION'
-        $failureReason = 'The previous stream cache does not use an allowlisted host.'
+        $primaryFailure = 'STREAM_SOURCE_AUTHORIZATION'; $failureReason = 'The previous stream cache does not use an allowlisted host.'
     }
     elseif (-not $checks['V0.4 Manifest']) {
-        $primaryFailure = 'V0.4 Manifest'
-        $failureReason = 'Manifest contract is incompatible with the current integration.'
+        $primaryFailure = 'V0.4 Manifest'; $failureReason = 'Manifest contract is incompatible with the current integration.'
     }
     elseif (-not $checks['V0.4 Health']) {
-        $primaryFailure = 'V0.4 Health'
-        $failureReason = 'Addon health contract is incompatible with the current integration.'
+        $primaryFailure = 'V0.4 Health'; $failureReason = 'Addon health contract is incompatible with the current integration.'
     }
     elseif (-not $checks['V0.4 Catalog']) {
-        $primaryFailure = 'V0.4 Catalog'
-        $failureReason = "CatalogCount=$($catalogItems.Count); Expected=3; MatchingEvent=$catalogMatchCount."
+        $primaryFailure = 'V0.4 Catalog'; $failureReason = "CatalogCount=$($catalogItems.Count); Expected=3; MatchingEvent=$catalogMatchCount."
     }
     elseif (-not $checks['V0.4 Meta']) {
-        $primaryFailure = 'V0.4 Meta'
-        $failureReason = "MetaId=$metaId; Expected=$eventKey; MetaType=$metaType."
+        $primaryFailure = 'V0.4 Meta'; $failureReason = "MetaId=$metaId; Expected=$eventKey; MetaType=$metaType."
     }
     elseif (-not $checks['V0.4 Stream']) {
-        $primaryFailure = 'V0.4 Stream'
-        $failureReason = "StreamCount=$streamCount; RuntimeHost=$runtimeHost; SourcePolicy=$streamPolicy; ExpectedHost=$($approvedHosts -join ',')."
+        $primaryFailure = 'V0.4 Stream'; $failureReason = "StreamCount=$streamCount; RuntimeHost=$runtimeHost; SourcePolicy=$streamPolicy; ExpectedHost=$($approvedHosts -join ',')."
     }
 
-    # Dependency-aware result: later diagnostics are SKIPPED only when an earlier
-    # required dependency truly failed. Existing successful layers remain PASS.
     $streamDependencyBlocked = (-not $checks['V0.4 Manifest']) -or (-not $checks['V0.4 Health']) -or (-not $checks['V0.4 Catalog']) -or (-not $checks['V0.4 Meta'])
 
     Write-Host ''
@@ -196,6 +191,10 @@ try {
         if ($streamDependencyBlocked -and -not $checks['V0.4 Stream']) {
             Write-Host '  Stream Dependency         : SKIPPED/INVALID DEPENDENCY' -ForegroundColor Yellow
         }
+        else {
+            Write-Host '  Stream Dependency         : INDEPENDENT' -ForegroundColor Yellow
+        }
+        Write-Host "  Stream Raw Diagnostic     : $($stream | ConvertTo-Json -Depth 10 -Compress)" -ForegroundColor Yellow
     }
 }
 catch {
